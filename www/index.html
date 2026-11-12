@@ -25,12 +25,14 @@ body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;b
 .iconbtn{border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:9px;padding:7px 10px;font-size:16px;cursor:pointer}
 select.proj{max-width:110px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);color:#fff;border-radius:9px;padding:6px;font-size:13px}
 select.proj option{color:#14532d}
-/* slim tabs */
-.tabs{display:flex;gap:6px;padding:8px 10px 0;overflow-x:auto}
-.tab{border:1px solid var(--line);background:var(--panel);color:var(--ink2);border-radius:16px;padding:7px 13px;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer}
-.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.wrap{max-width:680px;margin:0 auto;padding:10px 10px 12px}
-.tabpage{margin-top:10px}
+/* always-visible status line (v2.4 L1) */
+.statusline{max-width:680px;margin:6px auto 0;padding:4px 12px;font-size:12px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wrap{max-width:680px;margin:0 auto;padding:8px 10px 76px}
+.page{margin-top:10px}
+/* bottom navigation — 4 full pages (v2.4) */
+.bottomnav{position:fixed;left:0;right:0;bottom:0;display:flex;gap:4px;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:var(--panel);border-top:1px solid var(--line);z-index:30}
+.navbtn{flex:1;border:1px solid var(--line);background:var(--panel2);color:var(--ink2);border-radius:12px;padding:9px 4px;font-size:13px;font-weight:700;cursor:pointer}
+.navbtn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:8px}
 .panel h3{margin:0 0 8px;font-size:15px;color:var(--ink2);border-left:3px solid var(--accent);padding-left:8px}
 label{display:block;font-weight:700;margin:8px 0 3px;font-size:13px}
@@ -81,10 +83,17 @@ textarea{font-family:ui-monospace,Menlo,Consolas,monospace}
 .phonewrap{max-width:400px;margin:0 auto}
 .hintbar{display:flex;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px;margin-top:8px}
 .genstatus{font-size:13px;font-weight:700;color:var(--ink2);margin-top:8px;min-height:18px}
-.chatlist{max-height:52vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px}
+.chatlist{max-height:56vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px}
 .bubble{max-width:88%;padding:9px 11px;border-radius:12px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
 .bubble.user{align-self:flex-end;background:var(--accent);color:#fff;border-bottom-right-radius:4px}
 .bubble.ai{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);border-bottom-left-radius:4px}
+.chatimg{max-width:220px;max-height:220px;border-radius:10px;display:block;margin-bottom:6px}
+.tokline{font-size:12px;color:var(--muted);margin-top:6px}
+.steps{margin-top:8px;display:flex;flex-direction:column;gap:4px}
+.step{font-size:13px;color:var(--ink2)}
+.step.done{color:#1a7f37}
+.step.running{color:#b26a00}
+.step.fail{color:#c0392b}
 .chatrow{display:flex;gap:6px;margin-top:8px}
 .chatrow input{flex:1;min-width:0}
 /* drawer */
@@ -93,10 +102,13 @@ textarea{font-family:ui-monospace,Menlo,Consolas,monospace}
 .drawer.open{transform:translateX(0)}
 .drawer h2{margin:2px 0 6px;font-size:17px;color:var(--ink2)}
 .drawer .x{float:right}
-.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.tcard{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--panel2);cursor:pointer;text-align:left}
-.tcard b{display:block;font-size:14px;color:var(--ink2)}
-.tcard span{font-size:12px;color:var(--muted)}
+/* v2.3: full-width preview toggle + offline banner + key test results */
+.phonewrap.full{max-width:none}
+.netbanner{display:none;margin-top:10px;padding:9px 10px;border-radius:10px;background:var(--warnbg);color:var(--ink);font-weight:700;font-size:13px}
+.netbanner.show{display:block}
+.testout{font-size:13px;font-weight:700;margin-top:8px;line-height:1.5}
+.testout.ok{color:var(--ink2)}
+.testout.err{color:var(--err)}
 </style>
 </head>
 <body>
@@ -105,7 +117,7 @@ textarea{font-family:ui-monospace,Menlo,Consolas,monospace}
   <button id="btnDrawerX" class="btn small x">✖</button>
   <h2>⚙️ Settings</h2>
   <label>Gemini API Key
-    <input id="setGeminiKey" type="password" placeholder="AI Studio se key" autocomplete="off">
+    <input id="setGeminiKey" type="password" placeholder="Key from AI Studio" autocomplete="off">
   </label>
   <label>GitHub Token
     <input id="setGhToken" type="password" placeholder="Personal Access Token" autocomplete="off">
@@ -135,6 +147,11 @@ textarea{font-family:ui-monospace,Menlo,Consolas,monospace}
   <button id="btnSave" class="btn primary">💾 Save</button>
   <div id="saveBanner" class="save-banner" style="display:none"></div>
   <div class="btnrow">
+    <button id="btnTestGemini" class="btn small">🔑 Test Gemini key</button>
+    <button id="btnTestGh" class="btn small">🐙 Test GitHub token</button>
+  </div>
+  <div id="keyTestOut" class="testout"></div>
+  <div class="btnrow">
     <button id="btnUpdateCheck" class="btn small">🔄 Check for updates</button>
   </div>
   <div id="updateOut" class="kv"></div>
@@ -149,17 +166,28 @@ textarea{font-family:ui-monospace,Menlo,Consolas,monospace}
     <div class="btnrow">
       <button id="btnAddProj" class="btn small primary">＋ Add project</button>
       <button id="btnDelProj" class="btn small danger">Remove project</button>
+      <button id="btnDupProj" class="btn small">📋 Duplicate project</button>
     </div>
   </div>
   <div class="panel">
-    <h3>📑 Sections</h3>
+    <h3>💾 Full backup</h3>
+    <p class="hint">Saves everything: keys, projects, code, history and chat — one file.</p>
     <div class="btnrow">
+      <button id="btnExportBackup" class="btn small primary">⬆️ Export backup</button>
+      <button id="btnImportBackup" class="btn small">⬇️ Import backup</button>
+      <button id="btnRestoreSafety" class="btn small" style="display:none">↩ Restore safety backup</button>
+    </div>
+    <p class="note">⚠️ The backup file contains your Gemini key and GitHub token. Keep it private — never send it to anyone.</p>
+    <input id="backupInput" type="file" accept=".json,application/json" style="display:none">
+  </div>
+
+  <div class="panel">
+    <h3>📑 Pages</h3>
+    <div class="btnrow">
+      <button class="btn small" data-goto="ai">🤖 AI</button>
       <button class="btn small" data-goto="code">Code</button>
       <button class="btn small" data-goto="preview">Preview</button>
       <button class="btn small" data-goto="build">Build</button>
-      <button class="btn small" data-goto="history">History</button>
-      <button class="btn small" data-goto="templates">Templates</button>
-      <button class="btn small" data-goto="chat">Chat with AI</button>
     </div>
   </div>
 </aside>
@@ -168,32 +196,27 @@ textarea{font-family:ui-monospace,Menlo,Consolas,monospace}
   <button id="btnMenu" class="iconbtn">☰</button>
   <span class="ttl">🛠️ <span class="ttltxt">App Maker</span></span>
   <select id="projectSelect" class="proj"></select>
-  <span class="ver">v2.2</span>
+  <span class="ver">v2.4</span>
   <button id="btnDarkTop" class="iconbtn">🌙</button>
 </header>
 
-<nav class="tabs" id="tabs">
-  <button class="tab active" data-tab="code">📝 Code</button>
-  <button class="tab" data-tab="preview">👀 Preview</button>
-  <button class="tab" data-tab="build">🏗️ Build</button>
-  <button class="tab" data-tab="history">🕘 History</button>
-  <button class="tab" data-tab="templates">🧩 Templates</button>
-  <button class="tab" data-tab="chat">💬 Chat with AI</button>
-</nav>
+<div id="statusLine" class="statusline">✅ Ready</div>
 
 <div class="wrap">
+  <div id="netBanner" class="netbanner">📶 No internet — check mobile data or Wi-Fi and try again.</div>
   <div id="msg" class="msg" style="display:none"></div>
   <div id="updateBanner" class="msg" style="display:none"></div>
   <div id="buildBanner" class="msg" style="display:none"></div>
 
-  <section id="tab-code" class="tabpage">
+  <section id="page-ai" class="page">
     <div class="panel">
       <details open>
-        <summary class="dsum">✨ Write code with AI</summary>
+        <summary class="dsum">✨ What do you want to build?</summary>
         <textarea id="prompt" rows="2" placeholder="What do you want to build? (e.g. build me a calculator app)"></textarea>
         <div class="btnrow"><button id="btnGen" class="btn primary">✨ Write the code</button></div>
         <div id="genStatus" class="genstatus"></div>
       </details>
+      <div id="tokLine" class="tokline"></div>
     </div>
 
     <div class="panel" id="aiWhatPanel" style="display:none">
@@ -203,6 +226,22 @@ textarea{font-family:ui-monospace,Menlo,Consolas,monospace}
       </details>
     </div>
 
+    <div class="panel">
+      <h3>💬 Chat with AI</h3>
+      <div id="chatList" class="chatlist"><p class="hint">Ask AI anything — it sees your code and answers in English.</p></div>
+      <div id="chatImgPrev" style="margin-top:6px"></div>
+      <div class="chatrow">
+        <button id="btnChatImg" class="btn small">📎 Photo</button>
+        <button id="btnChatMic" class="btn small">🎤 Speak</button>
+        <input id="chatInput" type="text" placeholder="Write a question... (e.g. how is the button made in this code?)">
+        <button id="btnChatSend" class="btn primary small">➡️ Send</button>
+      </div>
+      <input id="chatImgInput" type="file" accept="image/*" style="display:none">
+      <p class="hint">Tip: attach a screenshot of your app and ask AI what to fix.</p>
+    </div>
+  </section>
+
+  <section id="page-code" class="page" style="display:none">
     <div class="panel">
       <h3>📝 Code <span id="chgCount" class="hint"></span><span id="saveState" class="saved"></span></h3>
       <div class="toolbar">
@@ -219,11 +258,12 @@ textarea{font-family:ui-monospace,Menlo,Consolas,monospace}
         <button id="btnFix" class="btn small">🛠️ Fix it (AI)</button>
         <input id="lineNo" type="number" min="1" placeholder="Line no." style="width:90px">
         <button id="btnExplain" class="btn small">❓ What does this line do?</button>
+        <button id="btnFormat" class="btn small">✨ Format code</button>
         <button id="btnClear" class="btn small danger" style="margin-left:auto">🗑️ Clear</button>
       </div>
       <div class="editorwrap">
         <div id="gutter" class="gutter">1</div>
-        <textarea id="editor" wrap="off" spellcheck="false" placeholder="The code will appear here — write it with AI, take a template, or write it yourself..."></textarea>
+        <textarea id="editor" wrap="off" spellcheck="false" placeholder="The code will appear here — ask AI on the AI page, or write it yourself..."></textarea>
       </div>
       <div id="syntaxOut" class="errlist"></div>
       <div id="reviewOut" class="prewrap"></div>
@@ -242,34 +282,51 @@ textarea{font-family:ui-monospace,Menlo,Consolas,monospace}
     </div>
 
     <div class="panel">
-      <h3>⬆️ Send to GitHub</h3>
+      <h3>🕘 Code history</h3>
+      <p class="hint">The last 10 versions of your code — tap Restore to bring one back.</p>
+      <div id="codeHistoryList" class="list"><p class="hint">No saved versions yet.</p></div>
+    </div>
+
+    <div class="panel">
+      <h3>💬 Share & save</h3>
       <div class="btnrow">
-        <button id="btnUpload" class="btn primary">⬆️ Send to GitHub</button>
-        <button id="btnFetchGh" class="btn">⬇️ Get from GitHub</button>
-        <button id="btnBuildGo" class="btn">🔄 See build</button>
         <button id="btnShare" class="btn">💬 Send on WhatsApp</button>
+        <button id="btnSaveHtml" class="btn">💾 Save code as .html</button>
       </div>
-      <p class="hint">The code goes to GitHub, where the cloud build makes the APK. The app name is saved on GitHub too.</p>
+      <p class="hint">To send the code to GitHub for a build, use the Build page.</p>
     </div>
   </section>
 
-  <section id="tab-preview" class="tabpage" style="display:none">
+  <section id="page-preview" class="page" style="display:none">
     <div class="panel">
       <h3>👀 Preview</h3>
       <div class="btnrow">
         <button id="btnPreview" class="btn primary">🔄 Show preview</button>
         <button id="btnPreviewBig" class="btn small">🔍 Expand</button>
+        <button id="btnPreviewBrowser" class="btn small">🌐 Open in browser</button>
+        <button id="btnPreviewSize" class="btn small">📱 Phone width</button>
       </div>
       <div id="previewHint" class="hintbar" style="display:none"><span>Preview is showing — if there is an error, it will appear below in red.</span><button id="btnPreviewHintX" class="btn small" style="margin-left:auto">✕</button></div>
-      <div class="phonewrap"><div class="previewwrap"><iframe id="preview" class="preview" sandbox="allow-scripts"></iframe></div></div>
+      <div class="phonewrap" id="phoneWrap"><div class="previewwrap"><iframe id="preview" class="preview" sandbox="allow-scripts"></iframe></div></div>
       <div id="previewErr" class="errlist"></div>
     </div>
   </section>
 
-  <section id="tab-build" class="tabpage" style="display:none">
+  <section id="page-build" class="page" style="display:none">
+    <div class="panel">
+      <h3>⬆️ Send to GitHub</h3>
+      <div class="btnrow">
+        <button id="btnUpload" class="btn primary">⬆️ Send to GitHub</button>
+        <button id="btnFetchGh" class="btn">⬇️ Get from GitHub</button>
+        <button id="btnBuildGo" class="btn">🔄 See build</button>
+      </div>
+      <p class="hint">The code goes to GitHub, where the cloud build makes the APK. The app name is saved on GitHub too.</p>
+    </div>
+
     <div class="panel">
       <h3>⬆️ Upload status</h3>
       <div id="uploadStatus" class="kv">No upload yet.</div>
+      <div id="uploadSteps" class="steps"></div>
     </div>
     <div class="panel">
       <h3>🏗️ Build status</h3>
@@ -278,45 +335,47 @@ textarea{font-family:ui-monospace,Menlo,Consolas,monospace}
       <div class="btnrow">
         <button id="btnRefreshBuild" class="btn small">🔄 Check again</button>
         <button id="btnActions" class="btn small">🌐 Open GitHub Actions</button>
+        <button id="btnRerunBuild" class="btn small" style="display:none">🔄 Re-run build</button>
+        <button id="btnWatchBuild" class="btn small">🔔 Notify me when done</button>
+        <button id="btnDiagnose" class="btn small" style="display:none">🤖 Why did it fail? (AI)</button>
       </div>
+      <div id="diagOut" class="prewrap" style="margin-top:8px"></div>
     </div>
     <div class="panel">
-      <h3>⬇️ APK download</h3>
-      <div id="apkInfo" class="kv">No ready APK found.</div>
-      <div class="btnrow">
-        <button id="btnDownload" class="btn primary" disabled>⬇️ Download APK</button>
-        <button id="btnOpenRun" class="btn" disabled>🌐 Open on GitHub</button>
-      </div>
+      <h3>📁 Repo files</h3>
+      <p id="repoPath" class="hint"></p>
+      <div class="btnrow"><button id="btnRepoLoad" class="btn small">📂 Load repo files</button></div>
+      <div id="repoList" class="list"></div>
+      <div id="repoView" class="prewrap" style="display:none;max-height:40vh;overflow:auto"></div>
+      <div class="btnrow"><button id="btnRepoLoadEditor" class="btn small primary" style="display:none">📝 Load this file into the editor</button></div>
     </div>
-  </section>
 
-  <section id="tab-history" class="tabpage" style="display:none">
     <div class="panel">
       <h3>🕘 Previous builds</h3>
       <div class="btnrow"><button id="btnRefreshHist" class="btn small">🔄 Load history</button></div>
       <div id="historyList" class="list"><p class="hint">History not loaded yet.</p></div>
     </div>
-  </section>
 
-  <section id="tab-templates" class="tabpage" style="display:none">
     <div class="panel">
-      <h3>🧩 Templates — start with one tap</h3>
-      <p class="hint">Tap a template and it will appear in the code editor (your old code stays saved in backup).</p>
-      <div class="tgrid" id="tplGrid"></div>
-    </div>
-  </section>
-
-  <section id="tab-chat" class="tabpage" style="display:none">
-    <div class="panel">
-      <h3>💬 Chat with AI</h3>
-      <div id="chatList" class="chatlist"><p class="hint">Ask AI anything — it sees your code and answers in English.</p></div>
-      <div class="chatrow">
-        <input id="chatInput" type="text" placeholder="Write a question... (e.g. how is the button made in this code?)">
-        <button id="btnChatSend" class="btn primary small">➡️ Send</button>
+      <h3>📥 APK download</h3>
+      <div id="apkInfo" class="kv">No ready APK found.</div>
+      <div id="apkSavedInfo" class="kv"></div>
+      <div class="btnrow">
+        <button id="btnDownload" class="btn primary" disabled>⬇️ Download APK</button>
+        <button id="btnOpenRun" class="btn" disabled>🌐 Open on GitHub</button>
+        <button id="btnInstallApk" class="btn primary" disabled>📲 Install APK</button>
       </div>
     </div>
   </section>
+
 </div>
+
+<nav class="bottomnav" id="bottomnav">
+  <button class="navbtn active" data-page="ai">🤖 AI</button>
+  <button class="navbtn" data-page="code">📝 Code</button>
+  <button class="navbtn" data-page="preview">👀 Preview</button>
+  <button class="navbtn" data-page="build">🏗️ Build</button>
+</nav>
 
 <script>
 "use strict";
@@ -425,6 +484,7 @@ function fillSettings(){
   refreshProjectSelect();
   updateGutter();
   renderChat();
+  showTokenLine();
 }
 function persistCode(){
   var s = getStore();
@@ -491,9 +551,10 @@ function parseGeminiText(data){
   } catch(e){ return ""; }
 }
 function geminiErrorMessage(status){
-  if(status === 400) return "API key is wrong or the model name is wrong";
-  if(status === 429) return "Gemini limit reached — try again later";
-  return "Gemini error: " + status;
+  if(status === 400) return "Gemini key or model is wrong — check the Gemini API Key and Model in Settings.";
+  if(status === 429) return "Gemini free limit reached — wait a bit and try again.";
+  if(status === 403) return "Gemini refused this key — the key may be blocked. Make a new key in AI Studio and paste it in Settings.";
+  return "Gemini error " + status + " — try again, and check the Gemini key in Settings.";
 }
 function geminiModelQueue(savedModel){
   var m = (savedModel || "").trim() || DEFAULTS.model;
@@ -514,6 +575,7 @@ async function callGemini(prompt, model, key, fetchFn){
     });
     if(res.ok){
       var data = await res.json();
+      try { recordGeminiUsage(data.usageMetadata); } catch(e){}
       return parseGeminiText(data);
     }
     if(res.status === 404){ saw404 = true; continue; }
@@ -534,6 +596,32 @@ async function callGeminiText(promptText, model, key, fetchFn){
     });
     if(res.ok){
       var data = await res.json();
+      try { recordGeminiUsage(data.usageMetadata); } catch(e){}
+      try { return stripFences(data.candidates[0].content.parts[0].text || ""); }
+      catch(e){ return ""; }
+    }
+    if(res.status === 404){ saw404 = true; continue; }
+    throw new Error(geminiErrorMessage(res.status));
+  }
+  if(saw404) throw new Error("This model was not found — change the Gemini Model in Settings and try again (gemini-3.5-flash-lite or gemini-3.6-flash)");
+  throw new Error("Gemini error: 404");
+}
+/* ---------- screenshot to AI (v2.4 item 1) ---------- */
+function buildGeminiImageBody(promptText, img){
+  return { contents: [{ parts: [{ text: promptText }, { inline_data: { mime_type: img.mime, data: img.data } }] }] };
+}
+async function callGeminiTextWithImage(promptText, img, model, key, fetchFn){
+  var queue = geminiModelQueue(model);
+  var saw404 = false;
+  for(var i = 0; i < queue.length; i++){
+    var res = await fetchFn(buildGeminiUrl(queue[i], key), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(buildGeminiImageBody(promptText, img))
+    });
+    if(res.ok){
+      var data = await res.json();
+      try { recordGeminiUsage(data.usageMetadata); } catch(e){}
       try { return stripFences(data.candidates[0].content.parts[0].text || ""); }
       catch(e){ return ""; }
     }
@@ -589,9 +677,11 @@ function buildCapacitorConfig(appId, appName){
   return JSON.stringify({ appId: appId || "com.jack.myapp", appName: appName || "Mera App", webDir: "www" }, null, 2);
 }
 function ghErrorMessage(status){
-  if(status === 401) return "GitHub token is wrong";
-  if(status === 404) return "Repo or file not found";
-  return "GitHub error: " + status;
+  if(status === 401) return "GitHub token is wrong or has expired — make a new token (GitHub → Settings → Developer settings → Tokens) and paste it in Settings.";
+  if(status === 403) return "GitHub refused — too many tries or the token has no access. Wait a few minutes, then check the token in Settings.";
+  if(status === 404) return "Repo or file not found — check the repo (owner/repo) and the file path in Settings.";
+  if(status === 422) return "GitHub did not accept this — the repo may be empty or the file too large. Check the repo on GitHub.";
+  return "GitHub error " + status + " — try again, and check the token and repo name in Settings.";
 }
 function formatBytes(n){
   n = Number(n) || 0;
@@ -614,7 +704,7 @@ function buildRunStatus(run){
   if(!run) return "No build has run yet.";
   var line = "Build: ";
   if(run.status === "queued") line += "is queued";
-  else if(run.status === "in_progress") line += "chal rahi hai";
+  else if(run.status === "in_progress") line += "is running";
   else if(run.status === "completed"){
     if(run.conclusion === "success") line += "finished — success ✅";
     else if(run.conclusion === "failure") line += "failed ❌ — open Actions, see the error";
@@ -642,6 +732,163 @@ function isNetworkError(e){
 }
 function splitReviewLines(text){
   return (text || "").split(/\r?\n/).map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
+}
+
+/* ---------- v2.3 pure helpers (tested) ---------- */
+var HISTORY_KEY = "appmaker-history-v1";
+var HISTORY_MAX = 10;
+var TOKENS_KEY = "appmaker-tokens-v1";
+var SAFETY_KEY = "appmaker-safety-backup-v1";
+
+/* ---------- status line + step checklist (v2.4 L1/L2) ---------- */
+function setStatusLine(text){
+  var el = document.getElementById("statusLine");
+  if(el) el.textContent = text;
+}
+function stepsHtml(steps){
+  var out = "";
+  for(var i = 0; i < steps.length; i++){
+    var s = steps[i];
+    var icon = s.state === "done" ? "✅" : (s.state === "running" ? "⏳" : (s.state === "fail" ? "❌" : "⬜"));
+    out += '<div class="step ' + s.state + '">' + icon + " " + escapeHtml(s.label) + "</div>";
+  }
+  return out;
+}
+function setUploadSteps(steps){
+  var el = document.getElementById("uploadSteps");
+  if(el) el.innerHTML = stepsHtml(steps);
+}
+
+/* ---------- token usage (v2.4 item 9) ---------- */
+function todayKey(){
+  var d = new Date();
+  return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+}
+function recordGeminiUsage(usage){
+  if(!usage) return;
+  var rec = { day: todayKey(), total: 0, last: 0 };
+  try {
+    var raw = localStorage.getItem(TOKENS_KEY);
+    if(raw){ var old = JSON.parse(raw); if(old && old.day === rec.day) rec = old; }
+  } catch(e){}
+  var t = usage.totalTokenCount || ((usage.promptTokenCount || 0) + (usage.candidatesTokenCount || 0));
+  rec.total += t;
+  rec.last = t;
+  try { localStorage.setItem(TOKENS_KEY, JSON.stringify(rec)); } catch(e){}
+  showTokenLine();
+}
+function showTokenLine(){
+  var el = document.getElementById("tokLine");
+  if(!el) return;
+  var rec = null;
+  try { rec = JSON.parse(localStorage.getItem(TOKENS_KEY) || "null"); } catch(e){}
+  if(!rec || rec.day !== todayKey()){ el.textContent = "Tokens today: 0"; return; }
+  el.textContent = "Last AI call: " + rec.last + " tokens · Today: " + rec.total + " tokens";
+}
+
+/* ---------- instant button feedback (v2.4 L4) ---------- */
+function setBusy(btn, text){
+  if(!btn) return;
+  if(!btn.dataset.origText) btn.dataset.origText = btn.textContent;
+  btn.disabled = true;
+  if(text) btn.textContent = text;
+}
+function clearBusy(btn){
+  if(!btn) return;
+  btn.disabled = false;
+  if(btn.dataset.origText) btn.textContent = btn.dataset.origText;
+  delete btn.dataset.origText;
+}
+/* One friendly message for any error: network first, then the real reason. */
+function friendlyError(e){
+  if(isNetworkError(e)) return "No internet — check mobile data or Wi-Fi and try again.";
+  var m = (e && e.message) ? String(e.message) : "";
+  if(m) return m;
+  return "Something went wrong — try again.";
+}
+/* "1.0" -> "1.1", "1.9" -> "1.10", "1.0.0" -> "1.0.1", "x" -> "1.1". */
+function nextVersion(v){
+  var parts = String(v == null ? "" : v).trim().split(".");
+  if(parts.length === 2){
+    var minor = parseInt(parts[1], 10);
+    if(isNaN(minor)) minor = 0;
+    return parts[0] + "." + (minor + 1);
+  }
+  if(parts.length >= 3){
+    var patch = parseInt(parts[parts.length - 1], 10);
+    if(isNaN(patch)) patch = 0;
+    parts[parts.length - 1] = String(patch + 1);
+    return parts.join(".");
+  }
+  return "1.1";
+}
+function buildGhRerunUrl(owner, repo, runId){
+  return "https://api.github.com/repos/" + owner + "/" + repo + "/actions/runs/" + runId + "/rerun-failed-jobs";
+}
+function sanitizeFileName(n){
+  var s = String(n == null ? "" : n).replace(/[^A-Za-z0-9._-]+/g, "_").replace(/_+/g, "_").replace(/^_+|_+$/g, "");
+  return (s || "app").slice(0, 60);
+}
+/* Pure part of code history: newest first, capped at HISTORY_MAX. */
+function pushCodeHistoryEntry(arr, code, label){
+  arr = (arr || []).slice();
+  if(!code) return arr;
+  if(arr.length && arr[0].code === code) return arr;
+  arr.unshift({ time: new Date().toISOString(), label: label || "Code", code: code });
+  while(arr.length > HISTORY_MAX) arr.pop();
+  return arr;
+}
+/* Simple HTML formatter: tags on their own lines, re-indented.
+   Script/style content is kept as-is (only the open/close lines move). */
+function formatCode(code){
+  code = code || "";
+  if(!code.trim()) return code;
+  var VOID = { area:1, base:1, br:1, col:1, embed:1, hr:1, img:1, input:1, link:1, meta:1, param:1, source:1, track:1, wbr:1 };
+  var out = [];
+  var depth = 0;
+  function pad(n){
+    var s = "";
+    for(var i = 0; i < n; i++) s += "  ";
+    return s;
+  }
+  function fmtHtml(text){
+    var t = text.replace(/>\s*</g, ">\n<");
+    var lines = t.split("\n");
+    for(var i = 0; i < lines.length; i++){
+      var line = lines[i].replace(/^\s+|\s+$/g, "");
+      if(!line) continue;
+      var isClose = /^<\//.test(line);
+      var tm = line.match(/^<([a-zA-Z][a-zA-Z0-9]*)/);
+      var tag = tm ? tm[1].toLowerCase() : "";
+      var selfClose = /\/>$/.test(line) || VOID[tag] || /^<!/.test(line) || /^<\?/.test(line);
+      var ownClose = tm && new RegExp("</" + tag + ">", "i").test(line);
+      if(isClose) depth = Math.max(0, depth - 1);
+      out.push(pad(depth) + line);
+      if(!isClose && tm && !selfClose && !ownClose) depth++;
+    }
+  }
+  var segRe = /<(script|style)(\s[^>]*)?>[\s\S]*?<\/\1>/gi;
+  var last = 0, m;
+  while((m = segRe.exec(code))){
+    if(m.index > last) fmtHtml(code.slice(last, m.index));
+    var block = m[0];
+    var openEnd = block.indexOf(">");
+    var openTag = block.slice(0, openEnd + 1);
+    var tagName = (openTag.match(/<(script|style)/i) || ["", "script"])[1].toLowerCase();
+    var closeTag = "</" + tagName + ">";
+    out.push(pad(depth) + openTag);
+    var inner = block.slice(openEnd + 1, block.length - closeTag.length);
+    var ilines = inner.split("\n");
+    for(var j = 0; j < ilines.length; j++){
+      var il = ilines[j].replace(/\s+$/g, "");
+      if(!il.trim()) continue;
+      out.push(il);
+    }
+    out.push(pad(depth) + closeTag);
+    last = m.index + block.length;
+  }
+  if(last < code.length) fmtHtml(code.slice(last));
+  return out.join("\n");
 }
 
 /* ---------- editor helpers (tested) ---------- */
@@ -786,25 +1033,6 @@ function syntaxCheck(code){
   return problems;
 }
 
-/* ---------- templates (5 starter apps, compact single-file HTML) ---------- */
-var TEMPLATES = [
-{ id: "calc", name: "Calculator", desc: "Clean calculator — add, subtract, multiply, divide",
-code: '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Calculator</title><style>body{margin:0;font-family:system-ui;background:#dcfce7;color:#14532d;display:flex;justify-content:center;min-height:100vh}.box{width:min(340px,94vw);margin:20px 0}.screen{background:#fff;border-radius:14px;padding:16px;font-size:30px;text-align:right;min-height:44px;word-break:break-all}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}button{border:0;border-radius:12px;padding:16px 0;font-size:20px;font-weight:700;background:#fff;color:#166534}button.op{background:#16a34a;color:#fff}button.eq{background:#15803d;color:#fff}</style></head><body><div class="box"><div class="screen" id="s">0</div><div class="grid"><button onclick="c()">C</button><button onclick="a(\'(\')"> (</button><button onclick="a(\')\')">)</button><button class="op" onclick="a(\'/\')">÷</button><button onclick="a(\'7\')">7</button><button onclick="a(\'8\')">8</button><button onclick="a(\'9\')">9</button><button class="op" onclick="a(\'*\')">×</button><button onclick="a(\'4\')">4</button><button onclick="a(\'5\')">5</button><button onclick="a(\'6\')">6</button><button class="op" onclick="a(\'-\')">−</button><button onclick="a(\'1\')">1</button><button onclick="a(\'2\')">2</button><button onclick="a(\'3\')">3</button><button class="op" onclick="a(\'+\')">+</button><button onclick="a(\'0\')">0</button><button onclick="a(\'.\')">.</button><button onclick="b()">⌫</button><button class="eq" onclick="e()">=</button></div></div><script>var v="";function r(){document.getElementById("s").textContent=v||"0"}function a(x){v+=x;r()}function c(){v="";r()}function b(){v=v.slice(0,-1);r()}function e(){try{v=String(eval(v))}catch(err){v="Error"}r()}<\/script></body></html>' },
-{ id: "notes", name: "Notes", desc: "Write your notes — they stay saved on the phone",
-code: '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Notes</title><style>body{margin:0;font-family:system-ui;background:#dcfce7;color:#14532d;padding:16px}.box{max-width:480px;margin:0 auto}textarea{width:100%;height:90px;border:1px solid #86efac;border-radius:12px;padding:10px;font-size:15px}button{border:0;border-radius:12px;padding:11px 16px;font-size:15px;font-weight:700;background:#16a34a;color:#fff;margin-top:8px}.note{background:#fff;border-radius:12px;padding:12px;margin-top:8px}.note small{color:#6b7280}.note button{background:#fee2e2;color:#991b1b;padding:5px 10px;margin-top:6px}</style></head><body><div class="box"><h2>📝 My Notes</h2><textarea id="t" placeholder="Write a note..."></textarea><br><button onclick="add()">＋ Add note</button><div id="list"></div></div><script>var K="notes-v1";function load(){var a=[];try{a=JSON.parse(localStorage.getItem(K))||[]}catch(e){}return a}function save(a){localStorage.setItem(K,JSON.stringify(a))}function show(){var a=load();document.getElementById("list").innerHTML=a.map(function(n,i){return \'<div class="note"><div>\'+n.text+\'</div><small>\'+n.time+\'</small><br><button onclick="del(\'+i+\')">Remove</button></div>\'}).join("")}function add(){var t=document.getElementById("t").value.trim();if(!t)return;var a=load();a.unshift({text:t,time:new Date().toLocaleString()});save(a);document.getElementById("t").value="";show()}function del(i){var a=load();a.splice(i,1);save(a);show()}show();<\/script></body></html>' },
-{ id: "timer", name: "Timer / Stopwatch", desc: "Start, stop, reset — see the time",
-code: '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Timer</title><style>body{margin:0;font-family:system-ui;background:#dcfce7;color:#14532d;display:flex;justify-content:center;min-height:100vh}.box{text-align:center;margin-top:60px}.time{font-size:64px;font-weight:800;background:#fff;border-radius:18px;padding:20px 26px}button{border:0;border-radius:12px;padding:13px 22px;font-size:16px;font-weight:700;margin:8px 4px 0;background:#fff;color:#166534}button.go{background:#16a34a;color:#fff}</style></head><body><div class="box"><div class="time" id="t">00:00</div><div><button class="go" id="b" onclick="toggle()">▶ Start</button><button onclick="reset()">↺ Reset</button></div></div><script>var s=0,t=null;function fmt(){var m=Math.floor(s/60),ss=s%60;return (m<10?"0":"")+m+":"+(ss<10?"0":"")+ss}function tick(){s++;document.getElementById("t").textContent=fmt()}function toggle(){var b=document.getElementById("b");if(t){clearInterval(t);t=null;b.textContent="▶ Start"}else{t=setInterval(tick,1000);b.textContent="⏸ Stop"}}function reset(){if(t){clearInterval(t);t=null} s=0;document.getElementById("t").textContent=fmt();document.getElementById("b").textContent="▶ Start"}<\/script></body></html>' },
-{ id: "todo", name: "Todo List", desc: "Write tasks, tick them, remove them",
-code: '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Todo</title><style>body{margin:0;font-family:system-ui;background:#dcfce7;color:#14532d;padding:16px}.box{max-width:480px;margin:0 auto}input{width:100%;border:1px solid #86efac;border-radius:12px;padding:11px;font-size:15px}button{border:0;border-radius:12px;padding:11px 16px;font-size:15px;font-weight:700;background:#16a34a;color:#fff;margin-top:8px}.row{background:#fff;border-radius:12px;padding:12px;margin-top:8px;display:flex;gap:10px;align-items:center}.row.done span{text-decoration:line-through;color:#6b7280}.row button{background:#fee2e2;color:#991b1b;padding:5px 10px;margin:0}</style></head><body><div class="box"><h2>✅ My Todo</h2><input id="t" placeholder="Write a task..."><br><button onclick="add()">＋ Add</button><div id="list"></div></div><script>var K="todo-v1";function load(){var a=[];try{a=JSON.parse(localStorage.getItem(K))||[]}catch(e){}return a}function save(a){localStorage.setItem(K,JSON.stringify(a))}function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;")}function show(){var a=load();document.getElementById("list").innerHTML=a.map(function(n,i){return \'<div class="row\'+(n.done?" done":"")+\'"><input type="checkbox" \'+(n.done?"checked":"")+\' onchange="tog(\'+i+\')"><span>\'+esc(n.text)+\'</span><button onclick="del(\'+i+\')">✖</button></div>\'}).join("")}function add(){var t=document.getElementById("t").value.trim();if(!t)return;var a=load();a.push({text:t,done:false});save(a);document.getElementById("t").value="";show()}function tog(i){var a=load();a[i].done=!a[i].done;save(a);show()}function del(i){var a=load();a.splice(i,1);save(a);show()}show();<\/script></body></html>' },
-{ id: "tapgame", name: "Tap Game", desc: "Tap as much as you can in 30 seconds!",
-code: '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Tap Game</title><style>body{margin:0;font-family:system-ui;background:#dcfce7;color:#14532d;text-align:center;padding:20px}.score{font-size:56px;font-weight:800}.tap{width:180px;height:180px;border-radius:50%;border:0;background:#16a34a;color:#fff;font-size:26px;font-weight:800;margin:20px 0}button.small{border:0;border-radius:12px;padding:11px 18px;font-size:15px;font-weight:700;background:#fff;color:#166534}</style></head><body><h2>👆 Tap Game</h2><p>Time: <b id="time">30</b>s &nbsp; Best: <b id="best">0</b></p><div class="score" id="score">0</div><br><button class="tap" id="tap" onclick="hit()">TAP!</button><br><button class="small" onclick="start()">▶ Play again</button><script>var s=0,t=30,iv=null;var best=0;try{best=parseInt(localStorage.getItem("tap-best"))||0}catch(e){}document.getElementById("best").textContent=best;function start(){s=0;t=30;document.getElementById("score").textContent="0";document.getElementById("time").textContent="30";if(iv)clearInterval(iv);iv=setInterval(function(){t--;document.getElementById("time").textContent=t;if(t<=0){clearInterval(iv);iv=null;if(s>best){best=s;try{localStorage.setItem("tap-best",best)}catch(e){}document.getElementById("best").textContent=best}alert("Time is up! Score: "+s)}},1000)}function hit(){if(!iv)return;s++;document.getElementById("score").textContent=s}<\/script></body></html>' }
-];
-function templateById(id){
-  for(var i = 0; i < TEMPLATES.length; i++){
-    if(TEMPLATES[i].id === id) return TEMPLATES[i];
-  }
-  return null;
-}
 
 /* ---------- UI state ---------- */
 var undoStack = [];
@@ -815,6 +1043,9 @@ var autosaveTimer = null;
 var pollTimer = null;
 var currentRun = null;
 var currentArtifact = null;
+var lastSavedApkUri = null;
+var lastSavedApkName = "";
+var _saver = null;
 var lastReviewText = "";
 var saveBannerTimer = null;
 
@@ -855,21 +1086,21 @@ function closeDrawer(){
   document.getElementById("scrim").style.display = "none";
 }
 function switchTab(name){
-  var tabs = ["code", "preview", "build", "history", "templates", "chat"];
+  var tabs = ["ai", "code", "preview", "build"];
   for(var i = 0; i < tabs.length; i++){
-    document.getElementById("tab-" + tabs[i]).style.display = (tabs[i] === name) ? "block" : "none";
+    var el = document.getElementById("page-" + tabs[i]);
+    if(el) el.style.display = (tabs[i] === name) ? "block" : "none";
   }
-  var btns = document.querySelectorAll(".tab");
+  var btns = document.querySelectorAll(".navbtn");
   for(var j = 0; j < btns.length; j++){
     var b = btns[j];
-    var on = b.getAttribute && b.getAttribute("data-tab") === name;
+    var on = b.getAttribute && b.getAttribute("data-page") === name;
     if(b.classList && b.classList.toggle) b.classList.toggle("active", !!on);
-    else b.className = "tab" + (on ? " active" : "");
+    else b.className = "navbtn" + (on ? " active" : "");
   }
-  if(name === "build"){ refreshBuild(); startPolling(); }
+  if(name === "build"){ refreshBuild(); refreshHistory(); startPolling(); }
   else { stopPolling(); }
-  if(name === "history"){ refreshHistory(); }
-  if(name === "chat"){ renderChat(); }
+  if(name === "ai"){ renderChat(); }
   closeDrawer();
 }
 function applyTheme(s){
@@ -938,31 +1169,6 @@ function backupCurrentCode(){
   saveStore(s);
   document.getElementById("btnRevert").style.display = "inline-block";
 }
-function renderTemplates(){
-  var grid = document.getElementById("tplGrid");
-  var html = "";
-  for(var i = 0; i < TEMPLATES.length; i++){
-    var t = TEMPLATES[i];
-    html += '<button class="tcard" onclick="__loadTpl(\'' + t.id + '\')"><b>' + escapeHtml(t.name) + "</b><span>" + escapeHtml(t.desc) + "</span></button>";
-  }
-  grid.innerHTML = html;
-}
-window.__loadTpl = function(id){
-  var t = templateById(id);
-  if(!t) return;
-  backupCurrentCode();
-  var oldCode = document.getElementById("editor").value;
-  document.getElementById("editor").value = t.code;
-  lastEditorValue = t.code;
-  var s = getStore();
-  var p = getProject(s);
-  if(p){ p.baseline = t.code; saveStore(s); }
-  persistCode();
-  updateGutter();
-  showCompare(oldCode, t.code);
-  switchTab("code");
-  showMsg("Template '" + t.name + "' loaded — now edit it or send it to GitHub.", "ok");
-};
 window.__dlRun = function(runId){
   downloadRunArtifact(runId);
 };
@@ -973,7 +1179,7 @@ window.__openRun = function(runId){
 };
 
 /* ---------- in-app update check (pure helpers, tested) ---------- */
-var APP_VERSION = "2.2";
+var APP_VERSION = "2.4";
 var UPDATE_URL = "https://raw.githubusercontent.com/Awais077/Awaiskhan/master/app-maker-update.json";
 function parseVersion(v){
   return String(v == null ? "" : v).trim().split(".").map(function(p){
@@ -1026,7 +1232,7 @@ async function checkUpdate(manual, fetchFn){
     }
     return r.status;
   } catch(e){
-    if(manual && out) out.textContent = "No internet — check later";
+    if(manual && out) out.textContent = "No internet — turn on mobile data or Wi-Fi and check again.";
     return "error";
   }
 }
@@ -1044,7 +1250,7 @@ function onEditorInput(){
   if(autosaveTimer){ try { clearTimeout(autosaveTimer); } catch(e){} }
   autosaveTimer = setTimeout(function(){
     persistCode();
-    document.getElementById("saveState").textContent = "Saved ✅ " + new Date().toLocaleTimeString();
+    document.getElementById("saveState").textContent = "Saved ✓ " + new Date().toLocaleTimeString([], {hour: "2-digit", minute: "2-digit"});
   }, 1000);
   updateGutter();
 }
@@ -1152,40 +1358,150 @@ function renderChat(){
   var html = "";
   for(var i = 0; i < msgs.length; i++){
     var m = msgs[i];
-    html += '<div class="bubble ' + (m.role === "user" ? "user" : "ai") + '">' + escapeHtml(m.text) + "</div>";
+    var imgHtml = "";
+    if(m.image && m.image.data){
+      imgHtml = '<img class="chatimg" src="data:' + escapeHtml(m.image.mime || "image/jpeg") + ';base64,' + m.image.data + '">';
+    }
+    html += '<div class="bubble ' + (m.role === "user" ? "user" : "ai") + '">' + imgHtml + escapeHtml(m.text) + "</div>";
   }
   list.innerHTML = html;
   list.scrollTop = list.scrollHeight;
 }
+/* AI reply appears line by line, not all at once (v2.4 L3). */
+function streamChatAnswer(idx, fullText){
+  return new Promise(function(resolve){
+    var lines = String(fullText || "").split("\n");
+    var shown = 0;
+    function tick(){
+      shown++;
+      var msgs = getChatMsgs();
+      msgs[idx] = { role: "ai", text: lines.slice(0, shown).join("\n") };
+      saveChatMsgs(msgs);
+      renderChat();
+      if(shown < lines.length){ setTimeout(tick, 120); }
+      else { resolve(); }
+    }
+    tick();
+  });
+}
+/* ---------- screenshot to AI: pick + downscale a photo (v2.4 item 1) ---------- */
+var pendingChatImage = null;
+function updateChatImgPrev(){
+  var el = document.getElementById("chatImgPrev");
+  if(!el) return;
+  if(pendingChatImage){
+    el.innerHTML = '<img class="chatimg" src="data:' + pendingChatImage.mime + ';base64,' + pendingChatImage.data + '"> <button class="btn small" id="btnChatImgClear">✕ Remove photo</button>';
+    var c = document.getElementById("btnChatImgClear");
+    if(c) c.addEventListener("click", function(){ pendingChatImage = null; updateChatImgPrev(); });
+  } else { el.innerHTML = ""; }
+}
+function handleChatImageFile(file){
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    downscaleImage(String(reader.result || ""), function(small){
+      var m = small.match(/^data:([^;]+);base64,(.*)$/);
+      if(!m){ showMsg("That photo could not be read — try another one.", "err"); return; }
+      pendingChatImage = { mime: m[1], data: m[2] };
+      updateChatImgPrev();
+      setStatusLine("📎 Photo attached — write your question and tap Send.");
+    });
+  };
+  reader.readAsDataURL(file);
+}
+/* Downscale a photo to max 640px (JPEG) so chat stays small and fast. */
+function downscaleImage(dataUrl, done){
+  try {
+    var img = new Image();
+    img.onload = function(){
+      var w = img.width, h = img.height;
+      var max = 640;
+      if(w > max || h > max){
+        var sc = Math.min(max / w, max / h);
+        w = Math.round(w * sc); h = Math.round(h * sc);
+      }
+      var c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      done(c.toDataURL("image/jpeg", 0.8));
+    };
+    img.onerror = function(){ done(dataUrl); };
+    img.src = dataUrl;
+  } catch(e){ done(dataUrl); }
+}
+/* ---------- voice prompt (v2.4 item 13) ---------- */
+async function listenSpeech(){
+  var saver = nativeSaver();
+  if(!saver){ showMsg("Voice input works inside the app only — type your question instead.", "err"); return; }
+  var btn = document.getElementById("btnChatMic");
+  setBusy(btn, "🎤 Listening...");
+  setStatusLine("🎤 Listening — speak now...");
+  try {
+    var out = await saver.listenSpeech({});
+    var t = out && out.text ? String(out.text).trim() : "";
+    if(t){
+      document.getElementById("chatInput").value = t;
+      setStatusLine("✅ Heard: " + t.slice(0, 60));
+    } else {
+      showMsg("Nothing heard — try again.", "err");
+    }
+  } catch(e){
+    showMsg(friendlyError(e), "err");
+    setStatusLine("❌ Voice input failed");
+  }
+  clearBusy(btn);
+}
+
 async function sendChat(){
   var input = document.getElementById("chatInput");
   var q = (input.value || "").trim();
-  if(!q) return;
+  var img = pendingChatImage;
+  if(!q && !img) return;
+  if(!q) q = "What do you see in this screenshot? What should I fix in my app?";
   var s = readSettings();
   var msgs = getChatMsgs();
-  msgs.push({role:"user", text:q});
+  var userMsg = { role: "user", text: q };
+  if(img) userMsg.image = img;
+  msgs.push(userMsg);
   saveChatMsgs(msgs);
   renderChat();
   input.value = "";
+  pendingChatImage = null;
+  updateChatImgPrev();
   if(!s.geminiKey){
     msgs.push({role:"ai", text:"First add your Gemini API Key in Settings — open ☰ above, add the key in Settings, then ask again."});
     saveChatMsgs(msgs);
     renderChat();
     return;
   }
+  var btn = document.getElementById("btnChatSend");
+  setBusy(btn, "⏳ Sending...");
+  setStatusLine("🤖 AI is thinking…");
+  var aiIdx = msgs.length;
   msgs.push({role:"ai", text:"AI is thinking..."});
   saveChatMsgs(msgs);
   renderChat();
   try {
     var code = document.getElementById("editor").value || "";
-    var history = msgs.slice(0, msgs.length - 2).slice(-10);
-    var ans = await callGeminiText(buildChatPrompt(code, history, q), s.model, s.geminiKey, fetch);
-    msgs[msgs.length - 1] = {role:"ai", text: (ans && ans.trim()) ? ans.trim() : "No answer received — try again"};
+    var history = msgs.slice(0, aiIdx - 1).slice(-10);
+    var ans;
+    if(img){
+      ans = await callGeminiTextWithImage(buildChatPrompt(code, history, q), img, s.model, s.geminiKey, fetch);
+    } else {
+      ans = await callGeminiText(buildChatPrompt(code, history, q), s.model, s.geminiKey, fetch);
+    }
+    if(!ans || !ans.trim()) ans = "No answer received — try again";
+    setStatusLine("🤖 AI is writing the answer…");
+    await streamChatAnswer(aiIdx, ans.trim());
+    setStatusLine("✅ Ready");
   } catch(e){
-    msgs[msgs.length - 1] = {role:"ai", text: isNetworkError(e) ? "No internet" : (e.message || "Something went wrong")};
+    msgs = getChatMsgs();
+    msgs[aiIdx] = { role: "ai", text: friendlyError(e) };
+    saveChatMsgs(msgs);
+    renderChat();
+    setStatusLine("❌ Something went wrong");
   }
-  saveChatMsgs(msgs);
-  renderChat();
+  clearBusy(btn);
 }
 
 /* ---------- AI actions ---------- */
@@ -1203,6 +1519,7 @@ async function genCode(){
   btn.disabled = true;
   btn.textContent = "⏳ Writing...";
   setGenStatus("🤖 AI is thinking...");
+  setStatusLine("🤖 AI is thinking…");
   showMsg("Gemini is writing the code...", "");
   try {
     var oldCode = document.getElementById("editor").value;
@@ -1216,6 +1533,7 @@ async function genCode(){
     if(p){ p.baseline = text; saveStore(st); }
     persistCode();
     updateGutter();
+    pushCodeHistory(text, "AI wrote the code");
     showCompare(oldCode, text);
     setGenStatus("✅ Code received! AI is explaining...");
     try {
@@ -1225,10 +1543,12 @@ async function genCode(){
       showAiWhat("Code is ready — see the Preview.");
     }
     setGenStatus("✅ Code is ready — read above what AI built.");
+    setStatusLine("✅ Code is ready");
     showMsg("Code is ready — see below in the comparison what was built, then open Preview or send it to GitHub.", "ok");
   } catch(e){
     setGenStatus("");
-    showMsg(isNetworkError(e) ? "No internet" : (e.message || "Something went wrong"), "err");
+    setStatusLine("❌ Something went wrong");
+    showMsg(friendlyError(e), "err");
   }
   btn.disabled = false;
   btn.textContent = "✨ Write the code";
@@ -1256,10 +1576,11 @@ async function runCommand(){
     if(p){ p.baseline = text; saveStore(st); }
     persistCode();
     updateGutter();
+    pushCodeHistory(text, "Command: " + cmd.slice(0, 40));
     showCompare(code, text);
     showMsg("Command applied — see below in the comparison what changed. If you don't like it, tap 'Undo'.", "ok");
   } catch(e){
-    showMsg(isNetworkError(e) ? "No internet" : (e.message || "Something went wrong"), "err");
+    showMsg(friendlyError(e), "err");
   }
   btn.disabled = false;
   btn.textContent = "➡️ Send command";
@@ -1280,7 +1601,7 @@ async function reviewCode(){
     showMsg("AI review is ready — read it below. Use 'Fix it' to fix the mistakes.", "ok");
   } catch(e){
     document.getElementById("reviewOut").textContent = "";
-    showMsg(isNetworkError(e) ? "No internet" : (e.message || "Something went wrong"), "err");
+    showMsg(friendlyError(e), "err");
   }
   btn.disabled = false;
   btn.textContent = "🧐 Check code (AI)";
@@ -1306,10 +1627,11 @@ async function fixCode(){
     if(p){ p.baseline = text; saveStore(st); }
     persistCode();
     updateGutter();
+    pushCodeHistory(text, "Fixed by AI");
     showCompare(code, text);
     showMsg("Fixed — see below in the comparison what changed.", "ok");
   } catch(e){
-    showMsg(isNetworkError(e) ? "No internet" : (e.message || "Something went wrong"), "err");
+    showMsg(friendlyError(e), "err");
   }
   btn.disabled = false;
   btn.textContent = "🛠️ Fix it (AI)";
@@ -1327,7 +1649,7 @@ async function explainLine(){
     var txt = await callGeminiText(buildExplainPrompt(lines[n - 1], n, document.getElementById("editor").value), s.model, s.geminiKey, fetch);
     document.getElementById("explainOut").textContent = txt || "No answer received — try again";
   } catch(e){
-    showMsg(isNetworkError(e) ? "No internet" : (e.message || "Something went wrong"), "err");
+    showMsg(friendlyError(e), "err");
   }
   btn.disabled = false;
   btn.textContent = "❓ What does this line do?";
@@ -1350,6 +1672,218 @@ function doPreview(){
   if(hint && !isPreviewHintClosed()) hint.style.display = "flex";
 }
 
+/* ---------- v2.3: native file saver, code history, format, key tests ---------- */
+function nativeSaver(){
+  if(_saver) return _saver;
+  try {
+    if(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()){
+      _saver = window.Capacitor.registerPlugin("FileSaver");
+      return _saver;
+    }
+  } catch(e){}
+  return null;
+}
+function arrayBufferToBase64(buf){
+  var bytes = new Uint8Array(buf);
+  var bin = "";
+  var chunk = 0x8000;
+  for(var i = 0; i < bytes.length; i += chunk){
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+  }
+  return btoa(bin);
+}
+function loadCodeHistory(){
+  try {
+    var arr = JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+    return Array.isArray(arr) ? arr : [];
+  } catch(e){ return []; }
+}
+function saveCodeHistory(arr){
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); } catch(e){}
+}
+function pushCodeHistory(code, label){
+  var arr = pushCodeHistoryEntry(loadCodeHistory(), code, label);
+  saveCodeHistory(arr);
+  renderCodeHistory();
+  return arr;
+}
+function renderCodeHistory(){
+  var list = document.getElementById("codeHistoryList");
+  if(!list) return;
+  var arr = loadCodeHistory();
+  if(!arr.length){ list.innerHTML = '<p class="hint">No saved versions yet.</p>'; return; }
+  var html = "";
+  for(var i = 0; i < arr.length; i++){
+    var e = arr[i];
+    html += '<div class="lrow"><span class="dot">🕘</span><div style="flex:1"><b>' + escapeHtml(e.label || "Code") + '</b><br><span class="hint">' + fmtTime(e.time) + " • " + formatBytes((e.code || "").length) + '</span></div><button class="btn small" onclick="__restoreHist(' + i + ')">↩ Restore</button></div>';
+  }
+  list.innerHTML = html;
+}
+window.__restoreHist = function(i){
+  var arr = loadCodeHistory();
+  var e = arr[i];
+  if(!e) return;
+  backupCurrentCode();
+  var oldCode = document.getElementById("editor").value;
+  document.getElementById("editor").value = e.code;
+  lastEditorValue = e.code;
+  persistCode();
+  updateGutter();
+  showCompare(oldCode, e.code);
+  showMsg("Old version is back (" + (e.label || "code") + ").", "ok");
+};
+async function testGeminiKey(){
+  var s = readSettings();
+  var out = document.getElementById("keyTestOut");
+  if(!s.geminiKey){ out.textContent = "❌ First write the Gemini API Key above."; out.className = "testout err"; return; }
+  out.textContent = "⏳ Checking Gemini key...";
+  out.className = "testout";
+  try {
+    var ans = await callGeminiText("Say OK in one word.", s.model, s.geminiKey, fetch);
+    out.textContent = "✅ Gemini key works" + (ans ? (" — AI said: " + ans.trim().slice(0, 40)) : "");
+    out.className = "testout ok";
+  } catch(e){
+    out.textContent = "❌ " + friendlyError(e);
+    out.className = "testout err";
+  }
+}
+async function testGhToken(){
+  var s = readSettings();
+  var out = document.getElementById("keyTestOut");
+  if(!s.ghToken){ out.textContent = "❌ First write the GitHub Token above."; out.className = "testout err"; return; }
+  out.textContent = "⏳ Checking GitHub token...";
+  out.className = "testout";
+  try {
+    var res = await fetch("https://api.github.com/user", { headers: ghHeaders(s.ghToken) });
+    if(!res.ok) throw new Error(ghErrorMessage(res.status));
+    var j = await res.json();
+    out.textContent = "✅ GitHub token works — logged in as " + (j.login || "?");
+    out.className = "testout ok";
+  } catch(e){
+    out.textContent = "❌ " + friendlyError(e);
+    out.className = "testout err";
+  }
+}
+async function rerunBuild(){
+  if(!currentRun) return;
+  var s = readSettings();
+  var r = parseRepo(s.repo);
+  if(!r) return;
+  var btn = document.getElementById("btnRerunBuild");
+  btn.disabled = true;
+  btn.textContent = "⏳ Re-running...";
+  try {
+    var res = await fetch(buildGhRerunUrl(r.owner, r.repo, currentRun.id), {
+      method: "POST",
+      headers: ghHeaders(s.ghToken)
+    });
+    if(!res.ok) throw new Error(ghErrorMessage(res.status));
+    showMsg("Build started again ✅ — watch the status below.", "ok");
+    startPolling();
+    refreshBuild();
+  } catch(e){
+    showMsg(friendlyError(e), "err");
+  }
+  btn.disabled = false;
+  btn.textContent = "🔄 Re-run build";
+}
+function startBuildWatch(){
+  var saver = nativeSaver();
+  var s = readSettings();
+  if(!saver || !s.ghToken) return;
+  try {
+    saver.watchBuild({ repo: s.repo, token: s.ghToken }).then(function(){
+      showMsg("You will get a notification when the build finishes ✅", "ok");
+    }, function(e){
+      showMsg(friendlyError(e), "err");
+    });
+  } catch(e){}
+}
+function stopBuildWatch(){
+  var saver = nativeSaver();
+  if(!saver) return;
+  try { saver.cancelWatch({}); } catch(e){}
+}
+async function installSavedApk(){
+  if(!lastSavedApkUri){ showMsg("First download the APK — then tap Install.", "err"); return; }
+  var saver = nativeSaver();
+  if(!saver){ showMsg("Install works inside the app only — open the APK from Downloads and tap it.", "err"); return; }
+  try {
+    await saver.installApk({ uri: lastSavedApkUri });
+    showMsg("Installer opened — tap Install on the next screen.", "ok");
+  } catch(e){
+    showMsg(friendlyError(e), "err");
+  }
+}
+var previewFull = false;
+function togglePreviewSize(){
+  previewFull = !previewFull;
+  var w = document.getElementById("phoneWrap");
+  if(w) w.classList.toggle("full", previewFull);
+  var b = document.getElementById("btnPreviewSize");
+  if(b) b.textContent = previewFull ? "🖥️ Full width" : "📱 Phone width";
+}
+async function openPreviewInBrowser(){
+  var code = document.getElementById("editor").value;
+  if(!code.trim()){ showMsg("First get code written or write it yourself.", "err"); return; }
+  var html = injectPreviewErrors(code);
+  var saver = nativeSaver();
+  if(saver){
+    try { await saver.openHtmlInBrowser({ html: html }); return; }
+    catch(e){ showMsg(friendlyError(e), "err"); return; }
+  }
+  try {
+    var blob = new Blob([html], { type: "text/html" });
+    var url = URL.createObjectURL(blob);
+    window.open(url, "_blank");
+    setTimeout(function(){ try { URL.revokeObjectURL(url); } catch(e2){} }, 30000);
+  } catch(e){ showMsg(friendlyError(e), "err"); }
+}
+function formatCodeUI(){
+  var ed = document.getElementById("editor");
+  var code = ed.value;
+  if(!code.trim()){ showMsg("Code is empty — nothing to format.", "err"); return; }
+  var fmt = formatCode(code);
+  if(fmt === code){ showMsg("Code is already tidy ✅", "ok"); return; }
+  backupCurrentCode();
+  ed.value = fmt;
+  lastEditorValue = fmt;
+  persistCode();
+  updateGutter();
+  showMsg("Code formatted ✅", "ok");
+}
+async function saveCodeHtml(){
+  var code = document.getElementById("editor").value;
+  if(!code.trim()){ showMsg("Code is empty — nothing to save.", "err"); return; }
+  var s = readSettings();
+  var fileName = sanitizeFileName(s.appName) + "-v" + sanitizeFileName(s.version) + ".html";
+  var saver = nativeSaver();
+  if(saver){
+    try {
+      var out = await saver.saveFile({ data: b64(code), fileName: fileName, mimeType: "text/html" });
+      showMsg("Code saved ✅ — " + (out.name || fileName), "ok");
+    } catch(e){ showMsg(friendlyError(e), "err"); }
+    return;
+  }
+  var blob = new Blob([code], { type: "text/html" });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(function(){ try { URL.revokeObjectURL(url); } catch(e){} }, 5000);
+  showMsg("Download started ✅", "ok");
+}
+function updateNetBanner(){
+  var b = document.getElementById("netBanner");
+  if(!b) return;
+  var online = true;
+  try { online = navigator.onLine !== false; } catch(e){}
+  b.classList.toggle("show", !online);
+}
+
 /* ---------- GitHub upload / build / download ---------- */
 function setUploadStatus(text, ok){
   var box = document.getElementById("uploadStatus");
@@ -1367,7 +1901,19 @@ async function upload(){
   if(!code.trim()){ showMsg("First get code written or write it yourself.", "err"); return; }
   var r = parseRepo(s.repo);
   if(!r){ showMsg("Repo format is wrong — write owner/repo.", "err"); return; }
+  /* v2.3: offer a version bump before uploading */
+  var newVersion = nextVersion(s.version);
+  if(window.confirm && window.confirm("Bump version " + s.version + " → " + newVersion + " before uploading?")){
+    s.version = newVersion;
+    var st0 = getStore();
+    var p0 = getProject(st0);
+    if(p0){ p0.version = newVersion; saveStore(st0); }
+    var verInput = document.getElementById("setVersion");
+    if(verInput) verInput.value = newVersion;
+  }
   var url = buildGhContentsUrl(r.owner, r.repo, s.path);
+  setUploadSteps([{label: "File ready", state: "done"}, {label: "Sending to GitHub", state: "running"}]);
+  setStatusLine("⬆️ Sending to GitHub…");
   setUploadStatus("⏳ Uploading... (" + s.path + ")", null);
   showMsg("Sending to GitHub...", "");
   var cfgNote = "";
@@ -1416,14 +1962,20 @@ async function upload(){
     persistCode();
     updateGutter();
     setUploadStatus("✅ Upload done — " + s.path + " (" + s.repo + ")" + cfgNote, true);
+    setUploadSteps([{label: "File ready", state: "done"}, {label: "Sending to GitHub", state: "done"}, {label: "Saved on GitHub", state: "done"}]);
+    setStatusLine("✅ Upload done");
     showMsg("Sent to GitHub ✅ — see the build in the Build tab.", "ok");
+    pushCodeHistory(code, "Uploaded v" + s.version);
+    startBuildWatch();
     switchTab("build");
   } catch(e){
-    var msg = isNetworkError(e) ? "No internet" : (e.message || "Something went wrong");
+    var msg = friendlyError(e);
     var st2 = getStore();
     var p2 = getProject(st2);
     if(p2){ p2.lastUpload = { time: new Date().toISOString(), ok: false, path: s.path }; saveStore(st2); }
     setUploadStatus("❌ Upload failed — " + msg + " (" + s.path + ")", false);
+    setUploadSteps([{label: "File ready", state: "done"}, {label: "Sending to GitHub", state: "fail"}]);
+    setStatusLine("❌ Upload failed");
     showMsg(msg, "err");
   }
 }
@@ -1448,10 +2000,11 @@ async function fetchFromGitHub(){
     if(p){ p.baseline = code; saveStore(st); }
     persistCode();
     updateGutter();
+    pushCodeHistory(code, "From GitHub");
     showCompare(oldCode, code);
     showMsg("Code came from GitHub — now edit it.", "ok");
   } catch(e){
-    showMsg(isNetworkError(e) ? "No internet" : (e.message || "Something went wrong"), "err");
+    showMsg(friendlyError(e), "err");
   }
 }
 function shareWhatsApp(){
@@ -1486,6 +2039,12 @@ async function refreshBuild(){
       document.getElementById("buildSteps").innerHTML = "";
       return;
     }
+    var rerunBtn = document.getElementById("btnRerunBuild");
+    if(rerunBtn) rerunBtn.style.display = (run.status === "completed" && run.conclusion === "failure") ? "inline-block" : "none";
+    var diagBtn = document.getElementById("btnDiagnose");
+    if(diagBtn) diagBtn.style.display = (run.status === "completed" && run.conclusion === "failure") ? "inline-block" : "none";
+    if(run.status === "completed") stopBuildWatch();
+    setStatusLine(run.status === "completed" ? (run.conclusion === "success" ? "✅ Build finished — success" : "❌ Build finished — failed") : "🏗️ Build is running…");
     var line = buildRunStatus(run);
     line += "\n" + runStatusChip(run);
     if(run.head_commit && run.head_commit.message) line += "\nCommit: " + run.head_commit.message;
@@ -1502,11 +2061,19 @@ async function refreshBuild(){
         if(jres.ok){
           var jd = await jres.json();
           renderSteps(run, (jd.jobs && jd.jobs[0]) || null);
+          if(jd.jobs && jd.jobs[0] && jd.jobs[0].steps){
+            var doneCount = 0, curStep = "";
+            for(var k = 0; k < jd.jobs[0].steps.length; k++){
+              if(jd.jobs[0].steps[k].status === "completed") doneCount++;
+              else if(!curStep && jd.jobs[0].steps[k].status === "in_progress") curStep = jd.jobs[0].steps[k].name || "";
+            }
+            setStatusLine("🏗️ Build is running — step " + doneCount + "/" + jd.jobs[0].steps.length + (curStep ? " — " + curStep : ""));
+          }
         }
       } catch(e){}
     }
   } catch(e){
-    box.textContent = isNetworkError(e) ? "No internet" : (e.message || "Something went wrong");
+    box.textContent = friendlyError(e);
   }
 }
 function renderSteps(run, job){
@@ -1532,6 +2099,11 @@ async function loadArtifactFor(run){
     if(!res.ok) return;
     var data = await res.json();
     var arts = data.artifacts || [];
+    lastSavedApkUri = null;
+    var installBtn = document.getElementById("btnInstallApk");
+    if(installBtn) installBtn.disabled = true;
+    var savedInfo = document.getElementById("apkSavedInfo");
+    if(savedInfo) savedInfo.textContent = "";
     var info = document.getElementById("apkInfo");
     if(arts.length){
       currentArtifact = arts[0];
@@ -1553,21 +2125,38 @@ async function downloadArtifact(){
   var btn = document.getElementById("btnDownload");
   btn.disabled = true;
   btn.textContent = "⏳ Downloading...";
+  setStatusLine("⬇️ Downloading the APK…");
   try {
     var res = await fetch(buildGhArtifactZipUrl(r.owner, r.repo, currentArtifact.id), { headers: ghHeaders(s.ghToken) });
     if(!res.ok) throw new Error(ghErrorMessage(res.status));
-    var blob = await res.blob();
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = (currentArtifact.name || "Mera-App") + ".zip";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function(){ try { URL.revokeObjectURL(url); } catch(e){} }, 5000);
-    showMsg("Download started ✅ (zip file — the APK is inside). If it does not start, download it from 'Open on GitHub'.", "ok");
+    var buf = await res.arrayBuffer();
+    var saver = nativeSaver();
+    if(saver){
+      /* v2.3: pick the save location — the app unzips and saves the APK itself */
+      var out = await saver.saveFile({ data: arrayBufferToBase64(buf), fileName: (currentArtifact.name || "Mera-App") + ".zip", mimeType: "application/zip" });
+      lastSavedApkUri = out && out.uri ? out.uri : null;
+      lastSavedApkName = out && out.name ? out.name : "";
+      var apkSaved = document.getElementById("apkSavedInfo");
+      if(apkSaved) apkSaved.textContent = "Saved: " + (out.name || "") + " (" + formatBytes(out.size || 0) + ")";
+      document.getElementById("btnInstallApk").disabled = (out.kind !== "apk") || !lastSavedApkUri;
+      showMsg(out.kind === "apk" ? "APK saved ✅ — tap 'Install APK' to install it." : "ZIP saved ✅ — open it, the APK is inside.", "ok");
+      setStatusLine("✅ APK saved");
+    } else {
+      var blob = new Blob([buf], { type: "application/zip" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url;
+      a.download = (currentArtifact.name || "Mera-App") + ".zip";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function(){ try { URL.revokeObjectURL(url); } catch(e){} }, 5000);
+      showMsg("Download started ✅ (zip file — the APK is inside). If it does not start, download it from 'Open on GitHub'.", "ok");
+      setStatusLine("✅ Download started");
+    }
   } catch(e){
-    showMsg(isNetworkError(e) ? "No internet" : (e.message || "Download failed — try from 'Open on GitHub'"), "err");
+    showMsg(friendlyError(e), "err");
+    setStatusLine("❌ Download failed");
   }
   btn.disabled = false;
   btn.textContent = "⬇️ Download APK";
@@ -1587,7 +2176,7 @@ async function downloadRunArtifact(runId){
     currentRun = { id: runId };
     await downloadArtifact();
   } catch(e){
-    showMsg(isNetworkError(e) ? "No internet" : (e.message || "Something went wrong"), "err");
+    showMsg(friendlyError(e), "err");
   }
 }
 async function refreshHistory(){
@@ -1612,7 +2201,7 @@ async function refreshHistory(){
     }
     list.innerHTML = html;
   } catch(e){
-    list.innerHTML = '<p class="hint">' + escapeHtml(isNetworkError(e) ? "No internet" : (e.message || "Something went wrong")) + "</p>";
+    list.innerHTML = '<p class="hint">' + escapeHtml(friendlyError(e)) + "</p>";
   }
 }
 function openActions(){
@@ -1685,9 +2274,239 @@ function changeFont(delta){
   updateGutter();
 }
 
+/* ---------- full backup (v2.4 item 4) ---------- */
+function exportBackupData(){
+  var st = getStore();
+  return { app: "App Maker", version: APP_VERSION, exportedAt: new Date().toISOString(), store: st };
+}
+function validateBackupData(d){
+  return !!(d && d.store && Array.isArray(d.store.projects) && d.store.projects.length);
+}
+async function exportBackup(){
+  var saver = nativeSaver();
+  if(!saver){ showMsg("Backup works inside the app only.", "err"); return; }
+  var btn = document.getElementById("btnExportBackup");
+  setBusy(btn, "⏳ Saving...");
+  setStatusLine("💾 Saving full backup…");
+  try {
+    var json = JSON.stringify(exportBackupData(), null, 2);
+    var name = "App-Maker-Backup-" + new Date().toISOString().slice(0, 10) + ".json";
+    var out = await saver.saveFile({ data: btoa(unescape(encodeURIComponent(json))), fileName: name, mimeType: "application/json" });
+    showMsg("Backup saved — it contains your keys. Keep it private, never send it to anyone.", "ok");
+    setStatusLine("✅ Backup saved");
+  } catch(e){
+    showMsg(friendlyError(e), "err");
+    setStatusLine("❌ Backup failed");
+  }
+  clearBusy(btn);
+}
+function importBackupFile(file){
+  var reader = new FileReader();
+  reader.onload = function(){
+    var data;
+    try { data = JSON.parse(String(reader.result || "")); }
+    catch(e){ showMsg("This is not a valid backup file.", "err"); return; }
+    if(!validateBackupData(data)){ showMsg("This file is not an App Maker backup.", "err"); return; }
+    if(!window.confirm || !window.confirm("Replace ALL data with this backup? Your current data is saved as a safety backup first.")) return;
+    try { localStorage.setItem(SAFETY_KEY, JSON.stringify(exportBackupData())); } catch(e){}
+    var rb = document.getElementById("btnRestoreSafety");
+    if(rb) rb.style.display = "inline-block";
+    saveStore(data.store);
+    undoStack.length = 0;
+    redoStack.length = 0;
+    fillSettings();
+    renderCodeHistory();
+    lastEditorValue = document.getElementById("editor").value;
+    showMsg("Backup restored — all projects and keys are back.", "ok");
+    setStatusLine("✅ Backup restored");
+  };
+  reader.readAsText(file);
+}
+function restoreSafetyBackup(){
+  var raw = null;
+  try { raw = localStorage.getItem(SAFETY_KEY); } catch(e){}
+  if(!raw){ showMsg("No safety backup saved yet.", "err"); return; }
+  var data;
+  try { data = JSON.parse(raw); } catch(e){ showMsg("The safety backup is broken.", "err"); return; }
+  if(!validateBackupData(data)){ showMsg("The safety backup is not valid.", "err"); return; }
+  if(!window.confirm || !window.confirm("Restore the safety backup? Your current data will be replaced.")) return;
+  saveStore(data.store);
+  undoStack.length = 0;
+  redoStack.length = 0;
+  fillSettings();
+  renderCodeHistory();
+  lastEditorValue = document.getElementById("editor").value;
+  showMsg("Safety backup restored.", "ok");
+  setStatusLine("✅ Safety backup restored");
+}
+
+/* ---------- duplicate project (v2.4 item 8) ---------- */
+function buildDuplicateProject(p){
+  var c = JSON.parse(JSON.stringify(p));
+  c.id = "p" + Date.now() + Math.floor(Math.random() * 1000);
+  c.name = (p.name || "Project") + " copy";
+  return c;
+}
+function duplicateProject(){
+  var st = getStore();
+  var p = getProject(st);
+  if(!p){ showMsg("No project to duplicate.", "err"); return; }
+  persistCode();
+  var c = buildDuplicateProject(p);
+  st.projects.push(c);
+  st.currentProjectId = c.id;
+  saveStore(st);
+  undoStack.length = 0;
+  redoStack.length = 0;
+  fillSettings();
+  lastEditorValue = document.getElementById("editor").value;
+  showMsg("Project '" + c.name + "' added.", "ok");
+  setStatusLine("✅ Project duplicated");
+}
+
+/* ---------- repo file browser (v2.4 item 4 of v2.6) ---------- */
+function buildGithubContentsUrl(owner, repo, path){
+  return "https://api.github.com/repos/" + owner + "/" + repo + "/contents/" + encodeURIComponent(path);
+}
+var repoFilesCache = [];
+var repoCurrentFile = null;
+async function loadRepoFiles(path){
+  var s = readSettings();
+  if(!s.ghToken){ showMsg("First add your GitHub Token in Settings.", "err"); openDrawer(); return; }
+  var r = parseRepo(s.repo);
+  if(!r){ showMsg("Repo format is wrong — write owner/repo.", "err"); return; }
+  var listEl = document.getElementById("repoList");
+  var pathEl = document.getElementById("repoPath");
+  if(pathEl) pathEl.textContent = r.owner + "/" + r.repo + (path ? " / " + path : "");
+  if(listEl) listEl.innerHTML = '<p class="hint">Loading files...</p>';
+  setStatusLine("📂 Loading repo files…");
+  try {
+    var res = await fetch(buildGithubContentsUrl(r.owner, r.repo, path || ""), { headers: ghHeaders(s.ghToken) });
+    if(!res.ok) throw new Error(ghErrorMessage(res.status));
+    var items = await res.json();
+    repoFilesCache = items;
+    if(!items.length){ if(listEl) listEl.innerHTML = '<p class="hint">No files here.</p>'; return; }
+    var listHtml = "";
+    for(var i = 0; i < items.length; i++){
+      var it = items[i];
+      listHtml += '<div class="lrow"><span>' + (it.type === "dir" ? "📁" : "📄") + '</span><span>' + escapeHtml(it.name) + '</span><button class="btn small" data-repo-idx="' + i + '">' + (it.type === "dir" ? "Open" : "View") + "</button></div>";
+    }
+    if(listEl){
+      listEl.innerHTML = listHtml;
+      var btns = listEl.querySelectorAll("[data-repo-idx]");
+      for(var j = 0; j < btns.length; j++){
+        btns[j].addEventListener("click", function(){
+          var it2 = repoFilesCache[parseInt(this.getAttribute("data-repo-idx"), 10)];
+          if(!it2) return;
+          if(it2.type === "dir") loadRepoFiles(it2.path);
+          else viewRepoFile(it2);
+        });
+      }
+    }
+    setStatusLine("✅ Repo files loaded");
+  } catch(e){
+    if(listEl) listEl.innerHTML = "";
+    showMsg(friendlyError(e), "err");
+    setStatusLine("❌ Repo files failed to load");
+  }
+}
+async function viewRepoFile(item){
+  var s = readSettings();
+  var view = document.getElementById("repoView");
+  var loadBtn = document.getElementById("btnRepoLoadEditor");
+  repoCurrentFile = item;
+  if(view){ view.style.display = "block"; view.textContent = "Loading " + item.name + "..."; }
+  if(loadBtn) loadBtn.style.display = "none";
+  try {
+    var res = await fetch(item.url, { headers: ghHeaders(s.ghToken) });
+    if(!res.ok) throw new Error(ghErrorMessage(res.status));
+    var j = await res.json();
+    var text = b64Decode(j.content || "");
+    if(view) view.textContent = text || "(empty file)";
+    if(loadBtn) loadBtn.style.display = "inline-block";
+  } catch(e){
+    if(view) view.textContent = friendlyError(e);
+  }
+}
+function loadRepoFileIntoEditor(){
+  if(!repoCurrentFile) return;
+  var view = document.getElementById("repoView");
+  var text = view ? view.textContent : "";
+  if(!text){ showMsg("Nothing to load.", "err"); return; }
+  backupCurrentCode();
+  var oldCode = document.getElementById("editor").value;
+  document.getElementById("editor").value = text;
+  lastEditorValue = text;
+  persistCode();
+  updateGutter();
+  pushCodeHistory(text, "Loaded from repo: " + repoCurrentFile.name);
+  showCompare(oldCode, text);
+  showMsg("File '" + repoCurrentFile.name + "' is now in the editor.", "ok");
+  switchTab("code");
+}
+
+/* ---------- build-fail AI diagnosis (v2.4 item 2 of v2.6) ---------- */
+function buildDiagnosePrompt(failed){
+  var step = failed && failed.step ? failed.step : "unknown step";
+  var concl = failed && failed.conclusion ? failed.conclusion : "failed";
+  var log = failed && failed.logTail ? failed.logTail : "";
+  return "My GitHub Actions build failed at the step '" + step + "' (result: " + concl + ")." +
+    (log ? " Here is the end of that step's log:\n" + log + "\n" : "") +
+    " Tell me in simple English: what most likely went wrong, and exactly what to change in my www/index.html or the build files to fix it.";
+}
+function extractLogTail(logText){
+  if(!logText) return "";
+  var lines = String(logText).split("\n");
+  return lines.slice(-80).join("\n").slice(-6000);
+}
+async function diagnoseBuild(){
+  var s = needKey();
+  if(!s) return;
+  var run = currentRun;
+  if(!run){ showMsg("No build run to check yet.", "err"); return; }
+  var btn = document.getElementById("btnDiagnose");
+  var out = document.getElementById("diagOut");
+  setBusy(btn, "🤖 Asking AI...");
+  setStatusLine("🤖 AI is checking the failed build…");
+  try {
+    var failed = { step: "unknown step", conclusion: run.conclusion || "failed", logTail: "" };
+    var r = parseRepo(s.repo);
+    if(r){
+      var jres = await fetch(buildGhJobsUrl(r.owner, r.repo, run.id), { headers: ghHeaders(s.ghToken) });
+      if(jres.ok){
+        var jd = await jres.json();
+        var job = (jd.jobs && jd.jobs[0]) || null;
+        if(job && job.steps){
+          for(var i = 0; i < job.steps.length; i++){
+            if(job.steps[i].conclusion === "failure"){ failed.step = job.steps[i].name || ("Step " + job.steps[i].number); break; }
+          }
+          var saver = nativeSaver();
+          if(saver){
+            try {
+              var logRes = await saver.downloadLog({ repo: r.owner + "/" + r.repo, runId: run.id, token: s.ghToken });
+              if(logRes && logRes.text) failed.logTail = extractLogTail(logRes.text);
+            } catch(e){}
+          }
+        }
+      }
+    }
+    var answer = await callGeminiText(buildDiagnosePrompt(failed), s.model, s.geminiKey, fetch);
+    if(out) out.textContent = answer || "No answer — try again.";
+    setStatusLine("✅ AI diagnosis ready");
+  } catch(e){
+    if(out) out.textContent = friendlyError(e);
+    setStatusLine("❌ Diagnosis failed");
+  }
+  clearBusy(btn);
+}
+
 /* ---------- boot ---------- */
 fillSettings();
-renderTemplates();
+renderCodeHistory();
+updateNetBanner();
+showTokenLine();
+switchTab("ai");
+try { if(localStorage.getItem(SAFETY_KEY)) document.getElementById("btnRestoreSafety").style.display = "inline-block"; } catch(e){}
 lastEditorValue = document.getElementById("editor").value;
 var _st0 = getStore();
 if(!_st0.geminiKey || !_st0.ghToken){ openDrawer(); }
@@ -1705,9 +2524,9 @@ document.getElementById("btnFontPlus").addEventListener("click", function(){ cha
 document.getElementById("projectSelect").addEventListener("change", function(){
   switchProject(document.getElementById("projectSelect").value);
 });
-document.querySelectorAll(".tab").forEach(function(b){
+document.querySelectorAll(".navbtn").forEach(function(b){
   b.addEventListener("click", function(){
-    switchTab(b.getAttribute("data-tab"));
+    switchTab(b.getAttribute("data-page"));
   });
 });
 document.querySelectorAll("[data-goto]").forEach(function(b){
@@ -1715,6 +2534,17 @@ document.querySelectorAll("[data-goto]").forEach(function(b){
     switchTab(b.getAttribute("data-goto"));
   });
 });
+document.getElementById("btnChatImg").addEventListener("click", function(){ document.getElementById("chatImgInput").click(); });
+document.getElementById("chatImgInput").addEventListener("change", function(){ if(this.files && this.files[0]) handleChatImageFile(this.files[0]); this.value = ""; });
+document.getElementById("btnChatMic").addEventListener("click", listenSpeech);
+document.getElementById("btnDupProj").addEventListener("click", duplicateProject);
+document.getElementById("btnExportBackup").addEventListener("click", exportBackup);
+document.getElementById("btnImportBackup").addEventListener("click", function(){ document.getElementById("backupInput").click(); });
+document.getElementById("backupInput").addEventListener("change", function(){ if(this.files && this.files[0]) importBackupFile(this.files[0]); this.value = ""; });
+document.getElementById("btnRestoreSafety").addEventListener("click", restoreSafetyBackup);
+document.getElementById("btnDiagnose").addEventListener("click", diagnoseBuild);
+document.getElementById("btnRepoLoad").addEventListener("click", function(){ loadRepoFiles(""); });
+document.getElementById("btnRepoLoadEditor").addEventListener("click", loadRepoFileIntoEditor);
 document.getElementById("btnGen").addEventListener("click", genCode);
 document.getElementById("btnCmd").addEventListener("click", runCommand);
 document.getElementById("btnRevert").addEventListener("click", function(){
@@ -1796,6 +2626,17 @@ document.getElementById("btnSave").addEventListener("click", saveSettings);
 document.getElementById("btnAddProj").addEventListener("click", addProject);
 document.getElementById("btnDelProj").addEventListener("click", delProject);
 document.getElementById("btnUpdateCheck").addEventListener("click", function(){ checkUpdate(true); });
+document.getElementById("btnTestGemini").addEventListener("click", testGeminiKey);
+document.getElementById("btnTestGh").addEventListener("click", testGhToken);
+document.getElementById("btnFormat").addEventListener("click", formatCodeUI);
+document.getElementById("btnSaveHtml").addEventListener("click", saveCodeHtml);
+document.getElementById("btnPreviewBrowser").addEventListener("click", openPreviewInBrowser);
+document.getElementById("btnPreviewSize").addEventListener("click", togglePreviewSize);
+document.getElementById("btnInstallApk").addEventListener("click", installSavedApk);
+document.getElementById("btnRerunBuild").addEventListener("click", rerunBuild);
+document.getElementById("btnWatchBuild").addEventListener("click", startBuildWatch);
+window.addEventListener("online", updateNetBanner);
+window.addEventListener("offline", updateNetBanner);
 ["setGeminiKey","setGhToken","setModel","setRepo","setPath","setAppName","setVersion"].forEach(function(id){
   document.getElementById(id).addEventListener("input", function(){
     var d = getStore();
