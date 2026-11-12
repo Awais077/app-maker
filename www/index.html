@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="ur">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App Maker</title>
+<style>
+*{box-sizing:border-box}
+:root{
+  --bg:#dcfce7; --panel:#ffffff; --panel2:#f0fdf4; --ink:#14532d; --ink2:#166534;
+  --accent:#16a34a; --accent2:#15803d; --line:#86efac; --muted:#4b5563;
+  --err:#991b1b; --errbg:#fee2e2; --okbg:#dcfce7; --warnbg:#fef9c3; --chip:#dcfce7;
+}
+body.dark{
+  --bg:#052e16; --panel:#0b3d20; --panel2:#0f2e1b; --ink:#d1fae5; --ink2:#bbf7d0;
+  --accent:#22c55e; --accent2:#4ade80; --line:#166534; --muted:#a7f3d0;
+  --err:#fecaca; --errbg:#7f1d1d; --okbg:#14532d; --warnbg:#713f12; --chip:#14532d;
+}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);min-height:100vh}
+/* slim top bar */
+.topbar{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--accent2);color:#fff;position:sticky;top:0;z-index:20}
+.topbar .ttl{font-size:18px;font-weight:800;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .ver{background:rgba(255,255,255,.25);padding:2px 8px;border-radius:12px;font-size:11px}
+.iconbtn{border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:9px;padding:7px 10px;font-size:16px;cursor:pointer}
+select.proj{max-width:130px;border:1px solid rgba(255,255,255,.4);background:rgba(255,255,255,.15);color:#fff;border-radius:9px;padding:6px;font-size:13px}
+select.proj option{color:#14532d}
+/* slim tabs */
+.tabs{display:flex;gap:6px;padding:8px 10px 0;overflow-x:auto}
+.tab{border:1px solid var(--line);background:var(--panel);color:var(--ink2);border-radius:16px;padding:7px 13px;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer}
+.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.wrap{max-width:680px;margin:0 auto;padding:10px 10px 30px}
+.tabpage{margin-top:10px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;margin-top:8px}
+.panel h3{margin:0 0 8px;font-size:15px;color:var(--ink2)}
+label{display:block;font-weight:700;margin:8px 0 3px;font-size:13px}
+textarea,input,select{width:100%;border:1px solid var(--line);border-radius:9px;padding:9px;font-size:14px;background:var(--panel);color:var(--ink)}
+textarea{font-family:ui-monospace,Menlo,Consolas,monospace}
+#prompt{font-family:inherit}
+.btn{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:9px 13px;font-size:14px;font-weight:700;background:var(--panel);color:var(--ink2);margin:5px 5px 0 0;cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.danger{background:var(--errbg);color:var(--err);border-color:var(--errbg)}
+.btn.small{padding:6px 10px;font-size:13px}
+.btn:disabled{opacity:.55}
+.btnrow{display:flex;flex-wrap:wrap;align-items:center}
+.msg{margin-top:10px;padding:10px;border-radius:10px;font-weight:600;background:var(--panel);font-size:14px}
+.msg.ok{background:var(--okbg);color:var(--ink2)}
+.msg.err{background:var(--errbg);color:var(--err)}
+.save-banner{margin-top:12px;padding:16px 12px;border-radius:12px;background:var(--accent);color:#fff;font-size:20px;font-weight:800;text-align:center}
+.note{background:var(--warnbg);border-radius:9px;padding:9px;font-weight:600;font-size:13px}
+.hint{font-size:12px;color:var(--muted)}
+.kv{font-size:13px;line-height:1.7}
+/* editor with gutter */
+.editorwrap{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel)}
+.gutter{padding:10px 4px 10px 8px;text-align:right;color:#9ca3af;background:var(--panel2);font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;line-height:20px;overflow:hidden;white-space:pre;user-select:none;flex:0 0 auto}
+.gutter .chg{color:#fff;background:var(--accent);border-radius:3px}
+#editor{flex:1;border:0;padding:10px;font-size:13px;line-height:20px;resize:vertical;min-height:280px;outline:none}
+.editorbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px;margin-top:8px}
+.saved{font-size:12px;color:var(--muted);margin-left:auto}
+/* compact lists (no big boxes) */
+.list{margin-top:8px}
+.lrow{display:flex;gap:8px;align-items:flex-start;padding:7px 4px;border-bottom:1px solid var(--line);font-size:13px}
+.lrow:last-child{border-bottom:0}
+.lrow .dot{flex:0 0 auto}
+.chip{display:inline-block;padding:2px 8px;border-radius:11px;font-size:11px;font-weight:700;background:var(--chip);color:var(--ink2)}
+.chip.ok{background:#16a34a;color:#fff}
+.chip.bad{background:#dc2626;color:#fff}
+.chip.run{background:#f59e0b;color:#fff}
+.prewrap{white-space:pre-wrap;word-break:break-word;font-size:13px;line-height:1.6}
+.errlist{color:var(--err);font-size:13px;line-height:1.7}
+.diffold{color:var(--err);text-decoration:line-through}
+.diffnew{color:var(--ink2);font-weight:600}
+.preview{width:100%;height:62vh;border:1px solid var(--line);border-radius:12px;background:#fff}
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:28;display:none}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:min(330px,86vw);background:var(--panel);color:var(--ink);z-index:30;transform:translateX(-102%);transition:transform .2s ease;overflow-y:auto;padding:12px;border-right:1px solid var(--line)}
+.drawer.open{transform:translateX(0)}
+.drawer h2{margin:2px 0 6px;font-size:17px;color:var(--ink2)}
+.drawer .x{float:right}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tcard{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--panel2);cursor:pointer;text-align:left}
+.tcard b{display:block;font-size:14px;color:var(--ink2)}
+.tcard span{font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer">
+  <button id="btnDrawerX" class="btn small x">✖</button>
+  <h2>⚙️ Settings</h2>
+  <label>Gemini API Key
+    <input id="setGeminiKey" type="password" placeholder="AI Studio se key" autocomplete="off">
+  </label>
+  <label>GitHub Token
+    <input id="setGhToken" type="password" placeholder="Personal Access Token" autocomplete="off">
+  </label>
+  <label>Gemini Model
+    <input id="setModel" type="text" value="gemini-3.5-flash-lite">
+  </label>
+  <label>App ka naam
+    <input id="setAppName" type="text" value="Mera App">
+  </label>
+  <label>Version
+    <input id="setVersion" type="text" value="1.0">
+  </label>
+  <label>Repo (owner/repo)
+    <input id="setRepo" type="text" value="Awais077/my-apps">
+  </label>
+  <label>File ka rasta
+    <input id="setPath" type="text" value="www/index.html">
+  </label>
+  <div class="btnrow">
+    <button id="btnDarkMode" class="btn small">🌙 Dark mode</button>
+    <button id="btnFontMinus" class="btn small">A−</button>
+    <button id="btnFontPlus" class="btn small">A＋</button>
+  </div>
+  <p class="note">Ye keys sirf tumhare phone mein rehti hain, kahin nahi bheji jatin. In ko kisi ko mat bhejo.</p>
+  <p class="hint">Gemini key free milti hai: aistudio.google.com → Get API key. GitHub token: GitHub → Settings → Developer settings → Personal access tokens (contents:write wala).</p>
+  <button id="btnSave" class="btn primary">💾 Save karo</button>
+  <div id="saveBanner" class="save-banner" style="display:none"></div>
+  <div class="btnrow">
+    <button id="btnUpdateCheck" class="btn small">🔄 Update check karo</button>
+  </div>
+  <div id="updateOut" class="kv"></div>
+  <div class="panel">
+    <h3>📁 Projects</h3>
+    <label>Naya project — naam
+      <input id="newProjName" type="text" placeholder="e.g. Notes App">
+    </label>
+    <label>Naya project — repo (owner/repo)
+      <input id="newProjRepo" type="text" placeholder="Awais077/my-notes">
+    </label>
+    <div class="btnrow">
+      <button id="btnAddProj" class="btn small primary">＋ Project add karo</button>
+      <button id="btnDelProj" class="btn small danger">Project hatao</button>
+    </div>
+  </div>
+  <div class="panel">
+    <h3>📑 Sections</h3>
+    <div class="btnrow">
+      <button class="btn small" data-goto="code">Code</button>
+      <button class="btn small" data-goto="preview">Preview</button>
+      <button class="btn small" data-goto="build">Build</button>
+      <button class="btn small" data-goto="history">History</button>
+      <button class="btn small" data-goto="templates">Templates</button>
+    </div>
+  </div>
+</aside>
+
+<header class="topbar">
+  <button id="btnMenu" class="iconbtn">☰</button>
+  <span class="ttl">🛠️ App Maker</span>
+  <select id="projectSelect" class="proj"></select>
+  <span class="ver">v2.0</span>
+  <button id="btnDarkTop" class="iconbtn">🌙</button>
+</header>
+
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-tab="code">📝 Code</button>
+  <button class="tab" data-tab="preview">👀 Preview</button>
+  <button class="tab" data-tab="build">🏗️ Build</button>
+  <button class="tab" data-tab="history">🕘 History</button>
+  <button class="tab" data-tab="templates">🧩 Templates</button>
+</nav>
+
+<div class="wrap">
+  <div id="msg" class="msg" style="display:none"></div>
+  <div id="updateBanner" class="msg" style="display:none"></div>
+  <div id="buildBanner" class="msg" style="display:none"></div>
+
+  <section id="tab-code" class="tabpage">
+    <div class="panel">
+      <h3>✨ AI se code likhwalo</h3>
+      <textarea id="prompt" rows="2" placeholder="Kya banana hai? (e.g. mujhe ek calculator app banao)"></textarea>
+      <div class="btnrow"><button id="btnGen" class="btn primary">✨ Code likhwalo</button></div>
+    </div>
+
+    <div class="panel">
+      <h3>📝 Code <span id="chgCount" class="hint"></span><span id="saveState" class="saved"></span></h3>
+      <div class="editorwrap">
+        <div id="gutter" class="gutter">1</div>
+        <textarea id="editor" spellcheck="false" placeholder="Yahan code aayega — AI se likhwalo, template lo, ya khud likho..."></textarea>
+      </div>
+      <div class="editorbar">
+        <button id="btnUndo" class="btn small">↩ Undo</button>
+        <button id="btnRedo" class="btn small">↪ Redo</button>
+        <button id="btnCopy" class="btn small">📋 Copy</button>
+        <button id="btnClear" class="btn small">🗑️ Saaf karo</button>
+        <input id="searchBox" type="text" placeholder="Code mein dhoondo..." style="flex:1;min-width:110px">
+        <button id="btnSearch" class="btn small">🔍 Dhoondo</button>
+        <span id="searchInfo" class="hint"></span>
+      </div>
+      <div class="btnrow">
+        <button id="btnSyntax" class="btn small">🔎 Check karo (ghalti)</button>
+        <button id="btnReview" class="btn small">🧐 Code check karo (AI)</button>
+        <button id="btnFix" class="btn small">🛠️ Theek karo (AI)</button>
+      </div>
+      <div id="syntaxOut" class="errlist"></div>
+      <div id="reviewOut" class="prewrap"></div>
+      <div id="compareOut"></div>
+      <div class="btnrow">
+        <input id="lineNo" type="number" min="1" placeholder="Line no." style="width:90px">
+        <button id="btnExplain" class="btn small">❓ Ye line kya karti hai?</button>
+      </div>
+      <div id="explainOut" class="prewrap"></div>
+    </div>
+
+    <div class="panel">
+      <h3>🤖 AI ko command do</h3>
+      <input id="cmdBox" type="text" placeholder="e.g. button bara karo, color neela karo...">
+      <div class="btnrow">
+        <button id="btnCmd" class="btn primary small">➡️ Command bhejo</button>
+        <button id="btnRevert" class="btn small" style="display:none">↩ Wapas lo (revert)</button>
+      </div>
+      <p class="hint">AI sirf tumhara command lagaye gi — baaki code waisa hi rahe ga. Pehle wala code backup mein save rehta hai.</p>
+    </div>
+
+    <div class="panel">
+      <h3>⬆️ GitHub pe bhejo</h3>
+      <div class="btnrow">
+        <button id="btnUpload" class="btn primary">⬆️ GitHub pe bhejo</button>
+        <button id="btnFetchGh" class="btn">⬇️ GitHub se lao</button>
+        <button id="btnBuildGo" class="btn">🔄 Build dekho</button>
+        <button id="btnShare" class="btn">💬 WhatsApp pe bhejo</button>
+      </div>
+      <p class="hint">Code GitHub pe jayega, wahan se cloud build APK banaye ga. App ka naam bhi GitHub pe save ho jaye ga.</p>
+    </div>
+  </section>
+
+  <section id="tab-preview" class="tabpage" style="display:none">
+    <div class="panel">
+      <h3>👀 Preview</h3>
+      <div class="btnrow"><button id="btnPreview" class="btn primary">🔄 Preview dikhao</button></div>
+      <iframe id="preview" class="preview" sandbox="allow-scripts"></iframe>
+      <div id="previewErr" class="errlist"></div>
+    </div>
+  </section>
+
+  <section id="tab-build" class="tabpage" style="display:none">
+    <div class="panel">
+      <h3>⬆️ Upload status</h3>
+      <div id="uploadStatus" class="kv">Abhi koi upload nahi hua.</div>
+    </div>
+    <div class="panel">
+      <h3>🏗️ Build status</h3>
+      <div id="buildStatus" class="kv">Build check nahi hui.</div>
+      <div id="buildSteps" class="list"></div>
+      <div class="btnrow">
+        <button id="btnRefreshBuild" class="btn small">🔄 Dobara check karo</button>
+        <button id="btnActions" class="btn small">🌐 GitHub Actions kholo</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>⬇️ APK download</h3>
+      <div id="apkInfo" class="kv">Koi tayyar APK nahi mila.</div>
+      <div class="btnrow">
+        <button id="btnDownload" class="btn primary" disabled>⬇️ APK download karo</button>
+        <button id="btnOpenRun" class="btn" disabled>🌐 GitHub pe kholo</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-history" class="tabpage" style="display:none">
+    <div class="panel">
+      <h3>🕘 Pichli builds</h3>
+      <div class="btnrow"><button id="btnRefreshHist" class="btn small">🔄 History lao</button></div>
+      <div id="historyList" class="list"><p class="hint">Abhi history load nahi hui.</p></div>
+    </div>
+  </section>
+
+  <section id="tab-templates" class="tabpage" style="display:none">
+    <div class="panel">
+      <h3>🧩 Templates — ek tap mein shuru karo</h3>
+      <p class="hint">Template dabao to wo code editor mein aa jaye ga (tumhara purana code backup mein save rehta hai).</p>
+      <div class="tgrid" id="tplGrid"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+"use strict";
+var KEY = "appmaker-data-v1";
+var DEFAULTS = { geminiKey: "", ghToken: "", model: "gemini-3.5-flash-lite", repo: "Awais077/my-apps", path: "www/index.html", code: "", prompt: "", appName: "Mera App", version: "1.0" };
+var MODEL_FALLBACKS = ["gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.8-flash"];
+var SYSTEM_PROMPT = "You are a helpful assistant that writes a complete single-file HTML app with inline CSS and JavaScript for a mobile phone. Return ONLY the complete HTML code, no explanation, no markdown fences, no backticks.";
+var REVIEW_PROMPT_HEAD = "Neeche diya gaya HTML app ka code parho. Jawab SIRF Roman Urdu mein (Urdu script nahi, Roman Urdu) saaf aur chota do. Teen hisse do: (1) GHALTIYAAN — har ghalti ke saath line number aur choti wazahat; agar koi ghalti nahi to 'Koi ghalti nahi mili' likho. (2) KAMZORIYAAN — mobile, speed aur look mein kya kamzor hai. (3) PORA TARIKA — har ghalti theek karne ke steps, ek-ek karke, saaf Roman Urdu mein. Code:";
+var FIX_PROMPT_HEAD = "Neeche diya gaya HTML app ka code aur us ki ghaltiyon ki list hai. Code ko theek kar do. Return ONLY the complete corrected HTML code, no explanation, no markdown fences, no backticks. Code:";
+var EXPLAIN_PROMPT_HEAD = "Is HTML/JS code ki line ko Roman Urdu mein saaf aur chota samjhao (kya karti hai, kyun hai). Line:";
+var CMD_PROMPT_HEAD = "Neeche diya gaya HTML app ka code hai. Sirf user ka command lagao, baaki code bilkul waisa hi rakho. Return ONLY the complete updated HTML code, no explanation, no markdown fences, no backticks. Command:";
+
+/* ---------- storage + migration ---------- */
+function loadStore(){
+  try { return JSON.parse(localStorage.getItem(KEY)) || {}; }
+  catch(e){ return {}; }
+}
+function saveStore(d){
+  try { localStorage.setItem(KEY, JSON.stringify(d)); } catch(e){}
+}
+function newProject(name, repo){
+  return {
+    id: "p" + Date.now() + Math.floor(Math.random() * 1000),
+    name: name || "Mera App",
+    repo: repo || DEFAULTS.repo,
+    path: DEFAULTS.path,
+    appName: name || DEFAULTS.appName,
+    version: DEFAULTS.version,
+    code: "",
+    prompt: "",
+    baseline: "",
+    backup: "",
+    lastUpload: null
+  };
+}
+/* v1.1 (flat fields) -> v2.0 (projects). Pure and tested. */
+function migrateStore(s){
+  s = s || {};
+  if(!s.projects){
+    var p = newProject("Mera App", s.repo || DEFAULTS.repo);
+    p.path = s.path || DEFAULTS.path;
+    p.code = s.code || "";
+    p.prompt = s.prompt || "";
+    p.baseline = s.code || "";
+    s.projects = [p];
+    s.currentProjectId = p.id;
+  }
+  if(!s.currentProjectId && s.projects.length) s.currentProjectId = s.projects[0].id;
+  return s;
+}
+function getStore(){
+  return migrateStore(loadStore());
+}
+function getProject(store){
+  var list = store.projects || [];
+  for(var i = 0; i < list.length; i++){
+    if(list[i].id === store.currentProjectId) return list[i];
+  }
+  return list[0] || null;
+}
+function readSettings(){
+  var s = getStore();
+  var p = getProject(s) || {};
+  return {
+    geminiKey: (s.geminiKey || "").trim(),
+    ghToken: (s.ghToken || "").trim(),
+    model: (s.model || DEFAULTS.model).trim() || DEFAULTS.model,
+    repo: (p.repo || DEFAULTS.repo).trim() || DEFAULTS.repo,
+    path: (p.path || DEFAULTS.path).trim() || DEFAULTS.path,
+    appName: (p.appName || DEFAULTS.appName).trim() || DEFAULTS.appName,
+    version: (p.version || DEFAULTS.version).trim() || DEFAULTS.version,
+    darkMode: !!s.darkMode,
+    fontSize: (typeof s.fontSize === "number" && s.fontSize >= 11 && s.fontSize <= 22) ? s.fontSize : 13
+  };
+}
+function saveSettings(){
+  var s = getStore();
+  var p = getProject(s);
+  s.geminiKey = document.getElementById("setGeminiKey").value.trim();
+  s.ghToken = document.getElementById("setGhToken").value.trim();
+  s.model = document.getElementById("setModel").value.trim() || DEFAULTS.model;
+  if(p){
+    p.appName = document.getElementById("setAppName").value.trim() || DEFAULTS.appName;
+    p.version = document.getElementById("setVersion").value.trim() || DEFAULTS.version;
+    p.repo = document.getElementById("setRepo").value.trim() || DEFAULTS.repo;
+    p.path = document.getElementById("setPath").value.trim() || DEFAULTS.path;
+  }
+  saveStore(s);
+  showSaveBanner();
+  showMsg("Settings save ho gayi.", "ok");
+}
+function fillSettings(){
+  var s = getStore();
+  var p = getProject(s) || {};
+  document.getElementById("setGeminiKey").value = s.geminiKey || "";
+  document.getElementById("setGhToken").value = s.ghToken || "";
+  document.getElementById("setModel").value = s.model || DEFAULTS.model;
+  document.getElementById("setAppName").value = p.appName || DEFAULTS.appName;
+  document.getElementById("setVersion").value = p.version || DEFAULTS.version;
+  document.getElementById("setRepo").value = p.repo || DEFAULTS.repo;
+  document.getElementById("setPath").value = p.path || DEFAULTS.path;
+  document.getElementById("editor").value = p.code || "";
+  document.getElementById("prompt").value = p.prompt || "";
+  applyTheme(s);
+  applyFontSize(readSettings().fontSize);
+  refreshProjectSelect();
+  updateGutter();
+}
+function persistCode(){
+  var s = getStore();
+  var p = getProject(s);
+  if(!p) return;
+  p.code = document.getElementById("editor").value;
+  p.prompt = document.getElementById("prompt").value;
+  saveStore(s);
+}
+
+/* ---------- pure helpers (tested) ---------- */
+function escapeHtml(t){
+  return String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function buildGeminiUrl(model, key){
+  return "https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent?key=" + encodeURIComponent(key);
+}
+function buildGeminiBody(userPrompt){
+  return { contents: [{ parts: [{ text: SYSTEM_PROMPT + "\n\n" + userPrompt }] }] };
+}
+function buildGeminiTextBody(promptText){
+  return { contents: [{ parts: [{ text: promptText }] }] };
+}
+function buildReviewPrompt(code){
+  return REVIEW_PROMPT_HEAD + "\n\n" + code;
+}
+function buildFixPrompt(code, review){
+  return FIX_PROMPT_HEAD + "\n\n" + code + "\n\nGhaltiyaan:\n" + (review || "");
+}
+function buildExplainPrompt(line, lineNo, code){
+  return EXPLAIN_PROMPT_HEAD + "\nLine " + lineNo + ": " + line + "\n\nPoora code:\n" + code;
+}
+function buildCommandPrompt(code, command, changeSummary){
+  return CMD_PROMPT_HEAD + " " + command + "\n\n" + (changeSummary ? "Pehle se badlaav: " + changeSummary + "\n\n" : "") + code;
+}
+function stripFences(t){
+  t = (t || "").trim();
+  if(/^```/.test(t)){
+    t = t.replace(/^```[a-zA-Z]*\s*/i, "");
+    t = t.replace(/\s*```\s*$/, "");
+  }
+  return t.trim();
+}
+function parseGeminiText(data){
+  try {
+    var t = data.candidates[0].content.parts[0].text;
+    return stripFences(t || "");
+  } catch(e){ return ""; }
+}
+function geminiErrorMessage(status){
+  if(status === 400) return "API key ghalat hai ya model ka naam ghalat hai";
+  if(status === 429) return "Gemini ki limit khatam — thori der baad try karo";
+  return "Gemini error: " + status;
+}
+function geminiModelQueue(savedModel){
+  var m = (savedModel || "").trim() || DEFAULTS.model;
+  var q = [m];
+  for(var i = 0; i < MODEL_FALLBACKS.length; i++){
+    if(q.indexOf(MODEL_FALLBACKS[i]) === -1) q.push(MODEL_FALLBACKS[i]);
+  }
+  return q;
+}
+async function callGemini(prompt, model, key, fetchFn){
+  var queue = geminiModelQueue(model);
+  var saw404 = false;
+  for(var i = 0; i < queue.length; i++){
+    var res = await fetchFn(buildGeminiUrl(queue[i], key), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(buildGeminiBody(prompt))
+    });
+    if(res.ok){
+      var data = await res.json();
+      return parseGeminiText(data);
+    }
+    if(res.status === 404){ saw404 = true; continue; }
+    throw new Error(geminiErrorMessage(res.status));
+  }
+  if(saw404) throw new Error("Ye model nahi mila — Settings mein Gemini Model badal ke dobara try karo (gemini-3.5-flash-lite ya gemini-3.6-flash)");
+  throw new Error("Gemini error: 404");
+}
+/* Same fallback chain but returns raw text (for review / explain / steps). */
+async function callGeminiText(promptText, model, key, fetchFn){
+  var queue = geminiModelQueue(model);
+  var saw404 = false;
+  for(var i = 0; i < queue.length; i++){
+    var res = await fetchFn(buildGeminiUrl(queue[i], key), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(buildGeminiTextBody(promptText))
+    });
+    if(res.ok){
+      var data = await res.json();
+      try { return stripFences(data.candidates[0].content.parts[0].text || ""); }
+      catch(e){ return ""; }
+    }
+    if(res.status === 404){ saw404 = true; continue; }
+    throw new Error(geminiErrorMessage(res.status));
+  }
+  if(saw404) throw new Error("Ye model nahi mila — Settings mein Gemini Model badal ke dobara try karo (gemini-3.5-flash-lite ya gemini-3.6-flash)");
+  throw new Error("Gemini error: 404");
+}
+function b64(s){
+  return btoa(unescape(encodeURIComponent(s)));
+}
+function b64Decode(s){
+  try { return decodeURIComponent(escape(atob((s || "").replace(/\s/g, "")))); }
+  catch(e){ return ""; }
+}
+function parseRepo(repoStr){
+  var p = (repoStr || "").trim().split("/");
+  if(p.length !== 2 || !p[0] || !p[1]) return null;
+  return { owner: p[0].trim(), repo: p[1].trim() };
+}
+function buildGhContentsUrl(owner, repo, path){
+  var clean = (path || "").replace(/^\/+/, "");
+  return "https://api.github.com/repos/" + owner + "/" + repo + "/contents/" + clean.split("/").map(encodeURIComponent).join("/");
+}
+function buildGhRunsUrl(owner, repo){
+  return "https://api.github.com/repos/" + owner + "/" + repo + "/actions/runs?per_page=1";
+}
+function buildGhRunsListUrl(owner, repo, per){
+  return "https://api.github.com/repos/" + owner + "/" + repo + "/actions/runs?per_page=" + (per || 10);
+}
+function buildGhJobsUrl(owner, repo, runId){
+  return "https://api.github.com/repos/" + owner + "/" + repo + "/actions/runs/" + runId + "/jobs";
+}
+function buildGhArtifactsUrl(owner, repo, runId){
+  return "https://api.github.com/repos/" + owner + "/" + repo + "/actions/runs/" + runId + "/artifacts";
+}
+function buildGhArtifactZipUrl(owner, repo, artifactId){
+  return "https://api.github.com/repos/" + owner + "/" + repo + "/actions/artifacts/" + artifactId + "/zip";
+}
+function buildGhActionsUrl(owner, repo){
+  return "https://github.com/" + owner + "/" + repo + "/actions";
+}
+function buildGhRunUrl(owner, repo, runId){
+  return "https://github.com/" + owner + "/" + repo + "/actions/runs/" + runId;
+}
+function buildPutBody(code, sha){
+  var body = { message: "Update app via App Maker", content: b64(code), branch: "main" };
+  if(sha) body.sha = sha;
+  return body;
+}
+function buildCapacitorConfig(appId, appName){
+  return JSON.stringify({ appId: appId || "com.jack.myapp", appName: appName || "Mera App", webDir: "www" }, null, 2);
+}
+function ghErrorMessage(status){
+  if(status === 401) return "GitHub token ghalat hai";
+  if(status === 404) return "Repo ya file nahi mili";
+  return "GitHub error: " + status;
+}
+function formatBytes(n){
+  n = Number(n) || 0;
+  if(n < 1024) return n + " B";
+  if(n < 1024 * 1024) return (n / 1024).toFixed(2) + " KB";
+  return (n / (1024 * 1024)).toFixed(2) + " MB";
+}
+function fmtTime(iso){
+  if(!iso) return "";
+  try { return new Date(iso).toLocaleString(); } catch(e){ return iso; }
+}
+function fmtDuration(run){
+  if(!run || !run.created_at) return "";
+  var end = run.updated_at || run.created_at;
+  var s = Math.max(0, Math.round((new Date(end) - new Date(run.created_at)) / 1000));
+  var m = Math.floor(s / 60);
+  return m > 0 ? (m + "m " + (s % 60) + "s") : (s + "s");
+}
+function buildRunStatus(run){
+  if(!run) return "Abhi koi build nahi chali.";
+  var line = "Build: ";
+  if(run.status === "queued") line += "line mein hai (queued)";
+  else if(run.status === "in_progress") line += "chal rahi hai";
+  else if(run.status === "completed"){
+    if(run.conclusion === "success") line += "ho gayi — kamyab ✅";
+    else if(run.conclusion === "failure") line += "fail ho gayi ❌ — Actions kholo, error dekho";
+    else if(run.conclusion === "cancelled") line += "cancel ho gayi";
+    else line += "khatam ho gayi (" + (run.conclusion || "?") + ")";
+  } else line += run.status;
+  if(run.created_at) line += "\nWaqt: " + fmtTime(run.created_at);
+  if(run.name) line += "\nRun: " + run.name;
+  return line;
+}
+function runStatusChip(run){
+  if(!run) return "";
+  if(run.status === "queued") return "⏳ Queued";
+  if(run.status === "in_progress") return "🔄 Chal rahi hai";
+  if(run.status === "completed"){
+    if(run.conclusion === "success") return "✅ Kamyab";
+    if(run.conclusion === "failure") return "❌ Fail";
+    if(run.conclusion === "cancelled") return "🚫 Cancel";
+    return "✔ Khatam";
+  }
+  return run.status;
+}
+function isNetworkError(e){
+  return e && /failed to fetch|networkerror|network request failed/i.test(e.message || "");
+}
+function splitReviewLines(text){
+  return (text || "").split(/\r?\n/).map(function(l){ return l.trim(); }).filter(function(l){ return l.length > 0; });
+}
+
+/* ---------- editor helpers (tested) ---------- */
+function lineCount(code){
+  if(!code) return 1;
+  return code.split("\n").length;
+}
+function findMatches(code, query){
+  if(!query) return { count: 0, positions: [] };
+  var q = query.toLowerCase();
+  var hay = (code || "").toLowerCase();
+  var positions = [];
+  var i = hay.indexOf(q);
+  while(i !== -1){
+    positions.push(i);
+    i = hay.indexOf(q, i + 1);
+    if(positions.length > 500) break;
+  }
+  return { count: positions.length, positions: positions };
+}
+/* Simple line diff vs a baseline: lines whose text differs by index + extra lines. */
+function diffLines(oldCode, newCode){
+  var a = (oldCode || "").split("\n");
+  var b = (newCode || "").split("\n");
+  var n = Math.max(a.length, b.length);
+  var changed = [];
+  for(var i = 0; i < n; i++){
+    var o = i < a.length ? a[i] : undefined;
+    var nw = i < b.length ? b[i] : undefined;
+    if(o !== nw) changed.push({ line: i + 1, old: (o == null ? "" : o), "new": (nw == null ? "" : nw) });
+  }
+  return { changedCount: changed.length, changedLines: changed };
+}
+function diffSummary(d){
+  if(!d || !d.changedCount) return "Koi change nahi";
+  return d.changedCount + " line" + (d.changedCount > 1 ? "s" : "") + " badli (e.g. line " + d.changedLines[0].line + ")";
+}
+/* Undo/redo stacks (plain arrays, capped at 50). */
+function pushUndo(stack, val){
+  if(stack.length && stack[stack.length - 1] === val) return stack;
+  stack.push(val);
+  if(stack.length > 50) stack.shift();
+  return stack;
+}
+function doUndo(stack, redoStack, current){
+  if(!stack.length) return { value: current, changed: false };
+  redoStack.push(current);
+  return { value: stack.pop(), changed: true };
+}
+function doRedo(stack, redoStack, current){
+  if(!redoStack.length) return { value: current, changed: false };
+  stack.push(current);
+  return { value: redoStack.pop(), changed: true };
+}
+/* Lightweight syntax check — returns [{line, msg}] in Roman Urdu. */
+var VOID_TAGS = { area:1, base:1, br:1, col:1, embed:1, hr:1, img:1, input:1, link:1, meta:1, param:1, source:1, track:1, wbr:1 };
+function lineOf(code, idx){
+  var upto = code.slice(0, idx);
+  return upto.split("\n").length;
+}
+function syntaxCheck(code){
+  var problems = [];
+  code = code || "";
+  var ci = code.indexOf("<!--");
+  if(ci !== -1 && code.indexOf("-->", ci + 4) === -1){
+    problems.push({ line: lineOf(code, ci), msg: "HTML comment <!-- band nahi hua — --> likhna bhool gaye" });
+  }
+  var si = code.toLowerCase().indexOf("<script");
+  if(si !== -1 && code.toLowerCase().indexOf("<\/script>", si) === -1){
+    problems.push({ line: lineOf(code, si), msg: "<script> band nahi hua — <\/script> likhna bhool gaye" });
+  }
+  var st = code.toLowerCase().indexOf("<style");
+  if(st !== -1 && code.toLowerCase().indexOf("</style>", st) === -1){
+    problems.push({ line: lineOf(code, st), msg: "<style> band nahi hua — </style> likhna bhool gaye" });
+  }
+  /* tag balance — skip script/style/comment content */
+  var stripped = code
+    .replace(/<script[\s\S]*?(<\/script>|$)/gi, function(m){ return m.indexOf("<\/script>") === -1 ? "<script>" : "<script><\/script>"; })
+    .replace(/<style[\s\S]*?(<\/style>|$)/gi, function(m){ return m.indexOf("</style>") === -1 ? "<style>" : "<style></style>"; })
+    .replace(/<!--[\s\S]*?-->/g, "");
+  var stack = [];
+  var tagRe = /<\/?([a-zA-Z][a-zA-Z0-9]*)[^>]*>/g;
+  var m;
+  while((m = tagRe.exec(stripped))){
+    var name = m[1].toLowerCase();
+    var text = m[0];
+    if(VOID_TAGS[name]) continue;
+    if(text.slice(-2) === "/>") continue;
+    if(text.charAt(1) === "/"){
+      if(stack.length && stack[stack.length - 1].name === name){ stack.pop(); }
+      else {
+        problems.push({ line: lineOf(stripped, m.index), msg: "</" + name + "> ka koi khula hua tag nahi mila — ghalat band hai" });
+      }
+    } else {
+      stack.push({ name: name, idx: m.index });
+    }
+  }
+  while(stack.length){
+    var un = stack.pop();
+    problems.push({ line: lineOf(stripped, un.idx), msg: "<" + un.name + "> band nahi hua — </" + un.name + "> likhna bhool gaye" });
+  }
+  /* braces / parens / brackets — skip strings and comments (rough pass) */
+  var openers = { "{": "}", "(": ")", "[": "]" };
+  var closers = { "}": "{", ")": "(", "]": "[" };
+  var bst = [];
+  var state = null, esc = false;
+  for(var i = 0; i < code.length; i++){
+    var ch = code[i];
+    if(state === "line"){
+      if(ch === "\n") state = null;
+      continue;
+    }
+    if(state === "block"){
+      if(ch === "*" && code[i + 1] === "/"){ state = null; i++; }
+      continue;
+    }
+    if(state === "'" || state === '"' || state === "`"){
+      if(esc){ esc = false; continue; }
+      if(ch === "\\"){ esc = true; continue; }
+      if(ch === state) state = null;
+      continue;
+    }
+    if(ch === "/" && code[i + 1] === "/"){ state = "line"; i++; continue; }
+    if(ch === "/" && code[i + 1] === "*"){ state = "block"; i++; continue; }
+    if(ch === "'" || ch === '"' || ch === "`"){ state = ch; continue; }
+    if(openers[ch]){ bst.push({ ch: ch, idx: i }); continue; }
+    if(closers[ch]){
+      if(bst.length && bst[bst.length - 1].ch === closers[ch]){ bst.pop(); }
+      else {
+        problems.push({ line: lineOf(code, i), msg: "'" + ch + "' zyada hai — is ka khula hua '" + closers[ch] + "' nahi mila" });
+        break;
+      }
+    }
+  }
+  if(state === "'" || state === '"' || state === "`"){
+    problems.push({ line: lineOf(code, code.length), msg: "String band nahi hui — '" + state + "' khula reh gaya" });
+  }
+  if(bst.length){
+    var un2 = bst[bst.length - 1];
+    problems.push({ line: lineOf(code, un2.idx), msg: "'" + un2.ch + "' band nahi hua — '" + openers[un2.ch] + "' likhna bhool gaye" });
+  }
+  return problems;
+}
+
+/* ---------- templates (5 starter apps, compact single-file HTML) ---------- */
+var TEMPLATES = [
+{ id: "calc", name: "Calculator", desc: "Saaf calculator — jama, tafreeq, zarb, taqseem",
+code: '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Calculator</title><style>body{margin:0;font-family:system-ui;background:#dcfce7;color:#14532d;display:flex;justify-content:center;min-height:100vh}.box{width:min(340px,94vw);margin:20px 0}.screen{background:#fff;border-radius:14px;padding:16px;font-size:30px;text-align:right;min-height:44px;word-break:break-all}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}button{border:0;border-radius:12px;padding:16px 0;font-size:20px;font-weight:700;background:#fff;color:#166534}button.op{background:#16a34a;color:#fff}button.eq{background:#15803d;color:#fff}</style></head><body><div class="box"><div class="screen" id="s">0</div><div class="grid"><button onclick="c()">C</button><button onclick="a(\'(\')"> (</button><button onclick="a(\')\')">)</button><button class="op" onclick="a(\'/\')">÷</button><button onclick="a(\'7\')">7</button><button onclick="a(\'8\')">8</button><button onclick="a(\'9\')">9</button><button class="op" onclick="a(\'*\')">×</button><button onclick="a(\'4\')">4</button><button onclick="a(\'5\')">5</button><button onclick="a(\'6\')">6</button><button class="op" onclick="a(\'-\')">−</button><button onclick="a(\'1\')">1</button><button onclick="a(\'2\')">2</button><button onclick="a(\'3\')">3</button><button class="op" onclick="a(\'+\')">+</button><button onclick="a(\'0\')">0</button><button onclick="a(\'.\')">.</button><button onclick="b()">⌫</button><button class="eq" onclick="e()">=</button></div></div><script>var v="";function r(){document.getElementById("s").textContent=v||"0"}function a(x){v+=x;r()}function c(){v="";r()}function b(){v=v.slice(0,-1);r()}function e(){try{v=String(eval(v))}catch(err){v="Error"}r()}<\/script></body></html>' },
+{ id: "notes", name: "Notes", desc: "Apni notes likho — phone mein save rehti hain",
+code: '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Notes</title><style>body{margin:0;font-family:system-ui;background:#dcfce7;color:#14532d;padding:16px}.box{max-width:480px;margin:0 auto}textarea{width:100%;height:90px;border:1px solid #86efac;border-radius:12px;padding:10px;font-size:15px}button{border:0;border-radius:12px;padding:11px 16px;font-size:15px;font-weight:700;background:#16a34a;color:#fff;margin-top:8px}.note{background:#fff;border-radius:12px;padding:12px;margin-top:8px}.note small{color:#6b7280}.note button{background:#fee2e2;color:#991b1b;padding:5px 10px;margin-top:6px}</style></head><body><div class="box"><h2>📝 Meri Notes</h2><textarea id="t" placeholder="Note likho..."></textarea><br><button onclick="add()">＋ Note add karo</button><div id="list"></div></div><script>var K="notes-v1";function load(){var a=[];try{a=JSON.parse(localStorage.getItem(K))||[]}catch(e){}return a}function save(a){localStorage.setItem(K,JSON.stringify(a))}function show(){var a=load();document.getElementById("list").innerHTML=a.map(function(n,i){return \'<div class="note"><div>\'+n.text+\'</div><small>\'+n.time+\'</small><br><button onclick="del(\'+i+\')">Hatao</button></div>\'}).join("")}function add(){var t=document.getElementById("t").value.trim();if(!t)return;var a=load();a.unshift({text:t,time:new Date().toLocaleString()});save(a);document.getElementById("t").value="";show()}function del(i){var a=load();a.splice(i,1);save(a);show()}show();<\/script></body></html>' },
+{ id: "timer", name: "Timer / Stopwatch", desc: "Start, stop, reset — waqt dekho",
+code: '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Timer</title><style>body{margin:0;font-family:system-ui;background:#dcfce7;color:#14532d;display:flex;justify-content:center;min-height:100vh}.box{text-align:center;margin-top:60px}.time{font-size:64px;font-weight:800;background:#fff;border-radius:18px;padding:20px 26px}button{border:0;border-radius:12px;padding:13px 22px;font-size:16px;font-weight:700;margin:8px 4px 0;background:#fff;color:#166534}button.go{background:#16a34a;color:#fff}</style></head><body><div class="box"><div class="time" id="t">00:00</div><div><button class="go" id="b" onclick="toggle()">▶ Start</button><button onclick="reset()">↺ Reset</button></div></div><script>var s=0,t=null;function fmt(){var m=Math.floor(s/60),ss=s%60;return (m<10?"0":"")+m+":"+(ss<10?"0":"")+ss}function tick(){s++;document.getElementById("t").textContent=fmt()}function toggle(){var b=document.getElementById("b");if(t){clearInterval(t);t=null;b.textContent="▶ Start"}else{t=setInterval(tick,1000);b.textContent="⏸ Stop"}}function reset(){if(t){clearInterval(t);t=null} s=0;document.getElementById("t").textContent=fmt();document.getElementById("b").textContent="▶ Start"}<\/script></body></html>' },
+{ id: "todo", name: "Todo List", desc: "Kaam likho, tick karo, hatao",
+code: '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Todo</title><style>body{margin:0;font-family:system-ui;background:#dcfce7;color:#14532d;padding:16px}.box{max-width:480px;margin:0 auto}input{width:100%;border:1px solid #86efac;border-radius:12px;padding:11px;font-size:15px}button{border:0;border-radius:12px;padding:11px 16px;font-size:15px;font-weight:700;background:#16a34a;color:#fff;margin-top:8px}.row{background:#fff;border-radius:12px;padding:12px;margin-top:8px;display:flex;gap:10px;align-items:center}.row.done span{text-decoration:line-through;color:#6b7280}.row button{background:#fee2e2;color:#991b1b;padding:5px 10px;margin:0}</style></head><body><div class="box"><h2>✅ Mera Todo</h2><input id="t" placeholder="Kaam likho..."><br><button onclick="add()">＋ Add karo</button><div id="list"></div></div><script>var K="todo-v1";function load(){var a=[];try{a=JSON.parse(localStorage.getItem(K))||[]}catch(e){}return a}function save(a){localStorage.setItem(K,JSON.stringify(a))}function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;")}function show(){var a=load();document.getElementById("list").innerHTML=a.map(function(n,i){return \'<div class="row\'+(n.done?" done":"")+\'"><input type="checkbox" \'+(n.done?"checked":"")+\' onchange="tog(\'+i+\')"><span>\'+esc(n.text)+\'</span><button onclick="del(\'+i+\')">✖</button></div>\'}).join("")}function add(){var t=document.getElementById("t").value.trim();if(!t)return;var a=load();a.push({text:t,done:false});save(a);document.getElementById("t").value="";show()}function tog(i){var a=load();a[i].done=!a[i].done;save(a);show()}function del(i){var a=load();a.splice(i,1);save(a);show()}show();<\/script></body></html>' },
+{ id: "tapgame", name: "Tap Game", desc: "30 second mein jitna ho sake tap karo!",
+code: '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Tap Game</title><style>body{margin:0;font-family:system-ui;background:#dcfce7;color:#14532d;text-align:center;padding:20px}.score{font-size:56px;font-weight:800}.tap{width:180px;height:180px;border-radius:50%;border:0;background:#16a34a;color:#fff;font-size:26px;font-weight:800;margin:20px 0}button.small{border:0;border-radius:12px;padding:11px 18px;font-size:15px;font-weight:700;background:#fff;color:#166534}</style></head><body><h2>👆 Tap Game</h2><p>Waqt: <b id="time">30</b>s &nbsp; Best: <b id="best">0</b></p><div class="score" id="score">0</div><br><button class="tap" id="tap" onclick="hit()">TAP!</button><br><button class="small" onclick="start()">▶ Dobara khelo</button><script>var s=0,t=30,iv=null;var best=0;try{best=parseInt(localStorage.getItem("tap-best"))||0}catch(e){}document.getElementById("best").textContent=best;function start(){s=0;t=30;document.getElementById("score").textContent="0";document.getElementById("time").textContent="30";if(iv)clearInterval(iv);iv=setInterval(function(){t--;document.getElementById("time").textContent=t;if(t<=0){clearInterval(iv);iv=null;if(s>best){best=s;try{localStorage.setItem("tap-best",best)}catch(e){}document.getElementById("best").textContent=best}alert("Waqt khatam! Score: "+s)}},1000)}function hit(){if(!iv)return;s++;document.getElementById("score").textContent=s}<\/script></body></html>' }
+];
+function templateById(id){
+  for(var i = 0; i < TEMPLATES.length; i++){
+    if(TEMPLATES[i].id === id) return TEMPLATES[i];
+  }
+  return null;
+}
+
+/* ---------- UI state ---------- */
+var undoStack = [];
+var redoStack = [];
+var lastEditorValue = "";
+var lastPushTime = 0;
+var autosaveTimer = null;
+var pollTimer = null;
+var currentRun = null;
+var currentArtifact = null;
+var lastReviewText = "";
+var saveBannerTimer = null;
+
+function showMsg(text, kind){
+  var m = document.getElementById("msg");
+  m.textContent = text;
+  m.className = "msg" + (kind ? " " + kind : "");
+  m.style.display = "block";
+}
+function showSaveBanner(){
+  var b = document.getElementById("saveBanner");
+  b.textContent = "✅ Settings save ho gayi.";
+  b.style.display = "block";
+  if(saveBannerTimer){ try { clearTimeout(saveBannerTimer); } catch(e){} }
+  saveBannerTimer = setTimeout(function(){
+    b.style.display = "none";
+    saveBannerTimer = null;
+  }, 5000);
+}
+function showBuildBanner(run){
+  var b = document.getElementById("buildBanner");
+  if(!run || run.status !== "completed"){ b.style.display = "none"; return; }
+  if(run.conclusion === "success"){
+    b.textContent = "✅ Build kamyab — APK tayyar hai, neeche Download dabao.";
+    b.className = "msg ok";
+  } else {
+    b.textContent = "❌ Build fail ho gayi — Build tab mein error dekho ya GitHub Actions kholo.";
+    b.className = "msg err";
+  }
+  b.style.display = "block";
+}
+function openDrawer(){
+  document.getElementById("drawer").classList.add("open");
+  document.getElementById("scrim").style.display = "block";
+}
+function closeDrawer(){
+  document.getElementById("drawer").classList.remove("open");
+  document.getElementById("scrim").style.display = "none";
+}
+function switchTab(name){
+  var tabs = ["code", "preview", "build", "history", "templates"];
+  for(var i = 0; i < tabs.length; i++){
+    document.getElementById("tab-" + tabs[i]).style.display = (tabs[i] === name) ? "block" : "none";
+  }
+  var btns = document.querySelectorAll(".tab");
+  for(var j = 0; j < btns.length; j++){
+    var b = btns[j];
+    var on = b.getAttribute && b.getAttribute("data-tab") === name;
+    if(b.classList && b.classList.toggle) b.classList.toggle("active", !!on);
+    else b.className = "tab" + (on ? " active" : "");
+  }
+  if(name === "build"){ refreshBuild(); startPolling(); }
+  else { stopPolling(); }
+  if(name === "history"){ refreshHistory(); }
+  closeDrawer();
+}
+function applyTheme(s){
+  var dark = !!(s && s.darkMode);
+  if(document.body && document.body.classList) document.body.classList.toggle("dark", dark);
+  var b1 = document.getElementById("btnDarkMode");
+  var b2 = document.getElementById("btnDarkTop");
+  if(b1) b1.textContent = dark ? "☀️ Light mode" : "🌙 Dark mode";
+  if(b2) b2.textContent = dark ? "☀️" : "🌙";
+}
+function applyFontSize(size){
+  var ed = document.getElementById("editor");
+  var g = document.getElementById("gutter");
+  var lh = (size + 7) + "px";
+  if(ed){ ed.style.fontSize = size + "px"; ed.style.lineHeight = lh; }
+  if(g){ g.style.fontSize = size + "px"; g.style.lineHeight = lh; }
+}
+function refreshProjectSelect(){
+  var s = getStore();
+  var sel = document.getElementById("projectSelect");
+  var html = "";
+  for(var i = 0; i < s.projects.length; i++){
+    var p = s.projects[i];
+    html += '<option value="' + escapeHtml(p.id) + '"' + (p.id === s.currentProjectId ? " selected" : "") + ">" + escapeHtml(p.name) + "</option>";
+  }
+  sel.innerHTML = html;
+  sel.value = s.currentProjectId;
+}
+function baselineOf(){
+  var s = getStore();
+  var p = getProject(s);
+  return p ? (p.baseline || "") : "";
+}
+function updateGutter(){
+  var code = document.getElementById("editor").value;
+  var n = lineCount(code);
+  var diff = diffLines(baselineOf(), code);
+  var chgSet = {};
+  for(var k = 0; k < diff.changedLines.length; k++) chgSet[diff.changedLines[k].line] = true;
+  var html = "";
+  for(var i = 1; i <= n; i++){
+    html += chgSet[i] ? '<span class="chg">' + i + "</span>" : i;
+    if(i < n) html += "\n";
+  }
+  document.getElementById("gutter").innerHTML = html;
+  document.getElementById("chgCount").textContent = diff.changedCount ? ("• " + diff.changedCount + " lines badli") : "";
+}
+function showCompare(oldCode, newCode){
+  var d = diffLines(oldCode, newCode);
+  var out = document.getElementById("compareOut");
+  if(!d.changedCount){ out.innerHTML = ""; return; }
+  var rows = "";
+  var show = d.changedLines.slice(0, 12);
+  for(var i = 0; i < show.length; i++){
+    var c = show[i];
+    rows += '<div class="lrow"><span class="dot">L' + c.line + '</span><div><div class="diffold">' + escapeHtml(c.old) + '</div><div class="diffnew">' + escapeHtml(c["new"]) + "</div></div></div>";
+  }
+  if(d.changedCount > 12) rows += '<div class="lrow">…aur ' + (d.changedCount - 12) + " lines</div>";
+  out.innerHTML = '<div class="panel"><h3>🔁 Kya badla (' + d.changedCount + ' lines)</h3><div class="list">' + rows + "</div></div>";
+}
+function backupCurrentCode(){
+  var s = getStore();
+  var p = getProject(s);
+  if(!p) return;
+  p.backup = document.getElementById("editor").value;
+  saveStore(s);
+  document.getElementById("btnRevert").style.display = "inline-block";
+}
+function renderTemplates(){
+  var grid = document.getElementById("tplGrid");
+  var html = "";
+  for(var i = 0; i < TEMPLATES.length; i++){
+    var t = TEMPLATES[i];
+    html += '<button class="tcard" onclick="__loadTpl(\'' + t.id + '\')"><b>' + escapeHtml(t.name) + "</b><span>" + escapeHtml(t.desc) + "</span></button>";
+  }
+  grid.innerHTML = html;
+}
+window.__loadTpl = function(id){
+  var t = templateById(id);
+  if(!t) return;
+  backupCurrentCode();
+  var oldCode = document.getElementById("editor").value;
+  document.getElementById("editor").value = t.code;
+  lastEditorValue = t.code;
+  var s = getStore();
+  var p = getProject(s);
+  if(p){ p.baseline = t.code; saveStore(s); }
+  persistCode();
+  updateGutter();
+  showCompare(oldCode, t.code);
+  switchTab("code");
+  showMsg("Template '" + t.name + "' load ho gaya — ab edit karo ya GitHub pe bhejo.", "ok");
+};
+window.__dlRun = function(runId){
+  downloadRunArtifact(runId);
+};
+window.__openRun = function(runId){
+  var s = readSettings();
+  var r = parseRepo(s.repo);
+  if(r) window.open(buildGhRunUrl(r.owner, r.repo, runId), "_blank");
+};
+
+/* ---------- in-app update check (pure helpers, tested) ---------- */
+var APP_VERSION = "2.0";
+var UPDATE_URL = "https://raw.githubusercontent.com/Awais077/Awaiskhan/master/app-maker-update.json";
+function parseVersion(v){
+  return String(v == null ? "" : v).trim().split(".").map(function(p){
+    var n = parseInt(p, 10);
+    return isNaN(n) ? 0 : n;
+  });
+}
+function isNewerVersion(latest, current){
+  var a = parseVersion(latest), b = parseVersion(current);
+  var n = Math.max(a.length, b.length);
+  for(var i = 0; i < n; i++){
+    var x = a[i] || 0, y = b[i] || 0;
+    if(x > y) return true;
+    if(x < y) return false;
+  }
+  return false;
+}
+function updateCheckResult(j, current){
+  j = j || {};
+  var latest = String(j.latestVersion || "").trim();
+  if(!latest) return { status: "invalid", latest: "", message: "", apkUrl: "" };
+  if(isNewerVersion(latest, current)){
+    return { status: "newer", latest: latest, message: String(j.message || ""), apkUrl: String(j.apkUrl || "") };
+  }
+  return { status: "latest", latest: latest, message: String(j.message || ""), apkUrl: String(j.apkUrl || "") };
+}
+function buildUpdateBannerHtml(latest, message, apkUrl){
+  var h = "🎉 Naya version aaya hai (v" + escapeHtml(latest) + ") — Download karo";
+  if(message) h += "<br><span>" + escapeHtml(message) + "</span>";
+  if(apkUrl) h += '<br><a class="btn primary" href="' + escapeHtml(apkUrl) + '" target="_blank" style="margin-top:8px">⬇️ Download karo</a>';
+  return h;
+}
+async function checkUpdate(manual, fetchFn){
+  fetchFn = fetchFn || fetch;
+  var out = document.getElementById("updateOut");
+  var banner = document.getElementById("updateBanner");
+  try {
+    var res = await fetchFn(UPDATE_URL);
+    if(!res.ok) throw new Error("http " + res.status);
+    var j = await res.json();
+    var r = updateCheckResult(j, APP_VERSION);
+    if(r.status === "invalid") throw new Error("bad json");
+    if(r.status === "newer"){
+      banner.innerHTML = buildUpdateBannerHtml(r.latest, r.message, r.apkUrl);
+      banner.style.display = "block";
+      if(out) out.textContent = "Naya version " + r.latest + " aaya hai — upar Download dabao.";
+    } else {
+      banner.style.display = "none";
+      if(manual && out) out.textContent = "Tumhara version latest hai ✅";
+    }
+    return r.status;
+  } catch(e){
+    if(manual && out) out.textContent = "Internet nahi hai — baad mein check karo";
+    return "error";
+  }
+}
+
+/* ---------- editor actions ---------- */
+function onEditorInput(){
+  var v = document.getElementById("editor").value;
+  var now = Date.now();
+  if(now - lastPushTime > 1500){
+    pushUndo(undoStack, lastEditorValue);
+    lastPushTime = now;
+  }
+  lastEditorValue = v;
+  redoStack.length = 0;
+  if(autosaveTimer){ try { clearTimeout(autosaveTimer); } catch(e){} }
+  autosaveTimer = setTimeout(function(){
+    persistCode();
+    document.getElementById("saveState").textContent = "Saved ✅ " + new Date().toLocaleTimeString();
+  }, 1000);
+  updateGutter();
+}
+function undoEdit(){
+  var r = doUndo(undoStack, redoStack, document.getElementById("editor").value);
+  if(r.changed){
+    document.getElementById("editor").value = r.value;
+    lastEditorValue = r.value;
+    persistCode();
+    updateGutter();
+  }
+}
+function redoEdit(){
+  var r = doRedo(undoStack, redoStack, document.getElementById("editor").value);
+  if(r.changed){
+    document.getElementById("editor").value = r.value;
+    lastEditorValue = r.value;
+    persistCode();
+    updateGutter();
+  }
+}
+function searchCode(){
+  var q = document.getElementById("searchBox").value;
+  var ed = document.getElementById("editor");
+  var res = findMatches(ed.value, q);
+  document.getElementById("searchInfo").textContent = !q ? "" : (res.count ? (res.count + " mile") : "Nahi mila");
+  if(res.count){
+    try { ed.focus(); ed.setSelectionRange(res.positions[0], res.positions[0] + q.length); } catch(e){}
+  }
+}
+function copyCode(){
+  var code = document.getElementById("editor").value;
+  if(!code.trim()){ showMsg("Code khaali hai — copy karne ke liye kuch nahi.", "err"); return; }
+  function done(){ showMsg("Code copy ho gaya ✅", "ok"); }
+  try {
+    if(typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(code).then(done, function(){ fallbackCopy(code, done); });
+      return;
+    }
+    fallbackCopy(code, done);
+  } catch(e){ fallbackCopy(code, done); }
+}
+function fallbackCopy(code, done){
+  try {
+    var ed = document.getElementById("editor");
+    ed.focus();
+    ed.select();
+    if(document.execCommand) document.execCommand("copy");
+    done();
+  } catch(e){ showMsg("Copy nahi ho saka — code ko haath se select kar ke copy karo.", "err"); }
+}
+function syntaxCheckUI(){
+  var probs = syntaxCheck(document.getElementById("editor").value);
+  var out = document.getElementById("syntaxOut");
+  if(!probs.length){
+    out.innerHTML = "";
+    showMsg("✅ Koi ghalti nahi mili (halki checking — poori checking nahi).", "ok");
+    return;
+  }
+  var html = "⚠️ " + probs.length + " masla mila:<br>";
+  for(var i = 0; i < probs.length; i++){
+    html += "• Line " + probs[i].line + " — " + escapeHtml(probs[i].msg) + "<br>";
+  }
+  out.innerHTML = html;
+  showMsg("Ghaltiyaan neeche dikh rahi hain — theek kar ke dobara Check karo.", "err");
+}
+
+/* ---------- AI actions ---------- */
+function needKey(){
+  var s = readSettings();
+  if(!s.geminiKey){ showMsg("Pehle Settings mein Gemini API Key daalo.", "err"); openDrawer(); return null; }
+  return s;
+}
+async function genCode(){
+  var s = needKey();
+  if(!s) return;
+  var prompt = document.getElementById("prompt").value.trim();
+  if(!prompt){ showMsg("Pehle likho — kya banana hai?", "err"); return; }
+  var btn = document.getElementById("btnGen");
+  btn.disabled = true;
+  btn.textContent = "⏳ Likha ja raha hai...";
+  showMsg("Gemini code likh raha hai...", "");
+  try {
+    var oldCode = document.getElementById("editor").value;
+    var text = await callGemini(prompt, s.model, s.geminiKey, fetch);
+    if(!text) throw new Error("Gemini ne khaali jawab diya — dobara try karo");
+    document.getElementById("editor").value = text;
+    lastEditorValue = text;
+    var st = getStore();
+    var p = getProject(st);
+    if(p){ p.baseline = text; saveStore(st); }
+    persistCode();
+    updateGutter();
+    showCompare(oldCode, text);
+    showMsg("Code tayyar hai — neeche compare mein dekho kya bana, phir Preview ya GitHub pe bhejo.", "ok");
+  } catch(e){
+    showMsg(isNetworkError(e) ? "Internet nahi hai" : (e.message || "Kuch ghalat ho gaya"), "err");
+  }
+  btn.disabled = false;
+  btn.textContent = "✨ Code likhwalo";
+}
+async function runCommand(){
+  var s = needKey();
+  if(!s) return;
+  var cmd = document.getElementById("cmdBox").value.trim();
+  if(!cmd){ showMsg("Pehle command likho — e.g. button bara karo.", "err"); return; }
+  var code = document.getElementById("editor").value;
+  if(!code.trim()){ showMsg("Pehle code likhwalo ya likho.", "err"); return; }
+  var btn = document.getElementById("btnCmd");
+  btn.disabled = true;
+  btn.textContent = "⏳ Command lag raha hai...";
+  showMsg("AI tumhara command laga raha hai...", "");
+  try {
+    var summary = diffSummary(diffLines(baselineOf(), code));
+    backupCurrentCode();
+    var text = await callGemini(buildCommandPrompt(code, cmd, summary), s.model, s.geminiKey, fetch);
+    if(!text) throw new Error("Gemini ne khaali jawab diya — dobara try karo");
+    document.getElementById("editor").value = text;
+    lastEditorValue = text;
+    var st = getStore();
+    var p = getProject(st);
+    if(p){ p.baseline = text; saveStore(st); }
+    persistCode();
+    updateGutter();
+    showCompare(code, text);
+    showMsg("Command lag gaya — neeche compare mein dekho kya badla. Pasand na aaye to 'Wapas lo' dabao.", "ok");
+  } catch(e){
+    showMsg(isNetworkError(e) ? "Internet nahi hai" : (e.message || "Kuch ghalat ho gaya"), "err");
+  }
+  btn.disabled = false;
+  btn.textContent = "➡️ Command bhejo";
+}
+async function reviewCode(){
+  var s = needKey();
+  if(!s) return;
+  var code = document.getElementById("editor").value;
+  if(!code.trim()){ showMsg("Pehle code likhwalo ya likho.", "err"); return; }
+  var btn = document.getElementById("btnReview");
+  btn.disabled = true;
+  btn.textContent = "⏳ Check ho raha hai...";
+  document.getElementById("reviewOut").textContent = "AI code parh raha hai...";
+  try {
+    var txt = await callGeminiText(buildReviewPrompt(code), s.model, s.geminiKey, fetch);
+    lastReviewText = txt || "";
+    document.getElementById("reviewOut").textContent = txt || "Koi jawab nahi mila — dobara try karo";
+    showMsg("AI review tayyar hai — neeche parho. 'Theek karo' se ghaltiyaan theek kar lo.", "ok");
+  } catch(e){
+    document.getElementById("reviewOut").textContent = "";
+    showMsg(isNetworkError(e) ? "Internet nahi hai" : (e.message || "Kuch ghalat ho gaya"), "err");
+  }
+  btn.disabled = false;
+  btn.textContent = "🧐 Code check karo (AI)";
+}
+async function fixCode(){
+  var s = needKey();
+  if(!s) return;
+  var code = document.getElementById("editor").value;
+  if(!code.trim()){ showMsg("Pehle code likhwalo ya likho.", "err"); return; }
+  if(!lastReviewText){ showMsg("Pehle 'Code check karo (AI)' dabao — phir Theek karo kaam kare ga.", "err"); return; }
+  var btn = document.getElementById("btnFix");
+  btn.disabled = true;
+  btn.textContent = "⏳ Theek ho raha hai...";
+  showMsg("AI ghaltiyaan theek kar raha hai...", "");
+  try {
+    backupCurrentCode();
+    var text = await callGemini(buildFixPrompt(code, lastReviewText), s.model, s.geminiKey, fetch);
+    if(!text) throw new Error("Gemini ne khaali jawab diya — dobara try karo");
+    document.getElementById("editor").value = text;
+    lastEditorValue = text;
+    var st = getStore();
+    var p = getProject(st);
+    if(p){ p.baseline = text; saveStore(st); }
+    persistCode();
+    updateGutter();
+    showCompare(code, text);
+    showMsg("Theek ho gaya — neeche compare mein dekho kya badla.", "ok");
+  } catch(e){
+    showMsg(isNetworkError(e) ? "Internet nahi hai" : (e.message || "Kuch ghalat ho gaya"), "err");
+  }
+  btn.disabled = false;
+  btn.textContent = "🛠️ Theek karo (AI)";
+}
+async function explainLine(){
+  var s = needKey();
+  if(!s) return;
+  var n = parseInt(document.getElementById("lineNo").value, 10);
+  var lines = document.getElementById("editor").value.split("\n");
+  if(!n || n < 1 || n > lines.length){ showMsg("Line number ghalat hai — 1 se " + lines.length + " ke beech likho.", "err"); return; }
+  var btn = document.getElementById("btnExplain");
+  btn.disabled = true;
+  btn.textContent = "⏳ Samjha raha hai...";
+  try {
+    var txt = await callGeminiText(buildExplainPrompt(lines[n - 1], n, document.getElementById("editor").value), s.model, s.geminiKey, fetch);
+    document.getElementById("explainOut").textContent = txt || "Koi jawab nahi mila — dobara try karo";
+  } catch(e){
+    showMsg(isNetworkError(e) ? "Internet nahi hai" : (e.message || "Kuch ghalat ho gaya"), "err");
+  }
+  btn.disabled = false;
+  btn.textContent = "❓ Ye line kya karti hai?";
+}
+
+/* ---------- preview ---------- */
+function injectPreviewErrors(code){
+  var handler = "<script>window.onerror=function(m,s,l,c){try{window.parent.postMessage({type:'preview-error',message:String(m)+' (line '+l+')'},'*')}catch(e){}return false;};window.addEventListener('unhandledrejection',function(e){try{window.parent.postMessage({type:'preview-error',message:'Promise: '+((e.reason&&e.reason.message)||e.reason)},'*')}catch(err){}});<\/script>";
+  if(/<head[^>]*>/i.test(code)) return code.replace(/<head[^>]*>/i, function(m){ return m + handler; });
+  return handler + code;
+}
+function doPreview(){
+  var code = document.getElementById("editor").value;
+  if(!code.trim()){ showMsg("Pehle code likhwalo ya likho.", "err"); return; }
+  document.getElementById("previewErr").textContent = "";
+  var f = document.getElementById("preview");
+  f.srcdoc = injectPreviewErrors(code);
+  switchTab("preview");
+  showMsg("Preview dikh raha hai — error ho to neeche laal mein likha aaye ga.", "ok");
+}
+
+/* ---------- GitHub upload / build / download ---------- */
+function setUploadStatus(text, ok){
+  var box = document.getElementById("uploadStatus");
+  box.innerHTML = escapeHtml(text) + "<br><small>" + new Date().toLocaleString() + "</small>";
+  if(ok === true) box.style.color = "var(--ink2)";
+  else if(ok === false) box.style.color = "var(--err)";
+}
+function ghHeaders(token){
+  return { "Authorization": "Bearer " + token, "Accept": "application/vnd.github+json" };
+}
+async function upload(){
+  var s = readSettings();
+  if(!s.ghToken){ showMsg("Pehle Settings mein GitHub Token daalo.", "err"); openDrawer(); return; }
+  var code = document.getElementById("editor").value;
+  if(!code.trim()){ showMsg("Pehle code likhwalo ya likho.", "err"); return; }
+  var r = parseRepo(s.repo);
+  if(!r){ showMsg("Repo ka format ghalat hai — owner/repo likho.", "err"); return; }
+  var url = buildGhContentsUrl(r.owner, r.repo, s.path);
+  setUploadStatus("⏳ Upload ho raha hai... (" + s.path + ")", null);
+  showMsg("GitHub pe bheja ja raha hai...", "");
+  var cfgNote = "";
+  try {
+    var sha = null;
+    var getRes = await fetch(url, { headers: ghHeaders(s.ghToken) });
+    if(getRes.ok){
+      var j = await getRes.json();
+      sha = j.sha;
+    } else if(getRes.status !== 404){
+      throw new Error(ghErrorMessage(getRes.status));
+    }
+    var putRes = await fetch(url, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "Authorization": ghHeaders(s.ghToken).Authorization, "Accept": ghHeaders(s.ghToken).Accept },
+      body: JSON.stringify(buildPutBody(code, sha))
+    });
+    if(!putRes.ok) throw new Error(ghErrorMessage(putRes.status));
+    /* App ka naam bhi GitHub pe save karo (capacitor.config.json) */
+    try {
+      var cfgUrl = buildGhContentsUrl(r.owner, r.repo, "capacitor.config.json");
+      var cfgRes = await fetch(cfgUrl, { headers: ghHeaders(s.ghToken) });
+      var appId = "com.jack.myapp";
+      var cfgSha = null;
+      if(cfgRes.ok){
+        var cj = await cfgRes.json();
+        cfgSha = cj.sha;
+        try { appId = JSON.parse(b64Decode(cj.content)).appId || appId; } catch(e){}
+      }
+      var cfgBody = buildPutBody(buildCapacitorConfig(appId, s.appName), cfgSha);
+      cfgBody.message = "Update app name via App Maker";
+      var cfgPut = await fetch(cfgUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", "Authorization": ghHeaders(s.ghToken).Authorization, "Accept": ghHeaders(s.ghToken).Accept },
+        body: JSON.stringify(cfgBody)
+      });
+      if(!cfgPut.ok) cfgNote = " (App naam update nahi ho saka)";
+    } catch(e){ cfgNote = " (App naam update nahi ho saka)"; }
+    var st = getStore();
+    var p = getProject(st);
+    if(p){
+      p.baseline = code;
+      p.lastUpload = { time: new Date().toISOString(), ok: true, path: s.path };
+      saveStore(st);
+    }
+    persistCode();
+    updateGutter();
+    setUploadStatus("✅ Upload ho gaya — " + s.path + " (" + s.repo + ")" + cfgNote, true);
+    showMsg("GitHub pe chala gaya ✅ — Build tab mein build dekho.", "ok");
+    switchTab("build");
+  } catch(e){
+    var msg = isNetworkError(e) ? "Internet nahi hai" : (e.message || "Kuch ghalat ho gaya");
+    var st2 = getStore();
+    var p2 = getProject(st2);
+    if(p2){ p2.lastUpload = { time: new Date().toISOString(), ok: false, path: s.path }; saveStore(st2); }
+    setUploadStatus("❌ Upload fail — " + msg + " (" + s.path + ")", false);
+    showMsg(msg, "err");
+  }
+}
+async function fetchFromGitHub(){
+  var s = readSettings();
+  if(!s.ghToken){ showMsg("Pehle Settings mein GitHub Token daalo.", "err"); openDrawer(); return; }
+  var r = parseRepo(s.repo);
+  if(!r){ showMsg("Repo ka format ghalat hai — owner/repo likho.", "err"); return; }
+  showMsg("GitHub se code la raha hoon...", "");
+  try {
+    var res = await fetch(buildGhContentsUrl(r.owner, r.repo, s.path), { headers: ghHeaders(s.ghToken) });
+    if(!res.ok) throw new Error(ghErrorMessage(res.status));
+    var j = await res.json();
+    var code = b64Decode(j.content || "");
+    if(!code) throw new Error("File khaali hai ya parhi nahi gayi");
+    backupCurrentCode();
+    var oldCode = document.getElementById("editor").value;
+    document.getElementById("editor").value = code;
+    lastEditorValue = code;
+    var st = getStore();
+    var p = getProject(st);
+    if(p){ p.baseline = code; saveStore(st); }
+    persistCode();
+    updateGutter();
+    showCompare(oldCode, code);
+    showMsg("GitHub se code aa gaya — ab edit karo.", "ok");
+  } catch(e){
+    showMsg(isNetworkError(e) ? "Internet nahi hai" : (e.message || "Kuch ghalat ho gaya"), "err");
+  }
+}
+function shareWhatsApp(){
+  var s = readSettings();
+  var code = document.getElementById("editor").value;
+  if(!code.trim()){ showMsg("Pehle code likhwalo ya likho.", "err"); return; }
+  var text = "Mera app ka code (" + s.appName + " v" + s.version + "):\n\n" + code;
+  if(text.length > 3000) text = text.slice(0, 3000) + "\n... (code bara hai, poora App Maker mein dekho)";
+  window.open("https://wa.me/?text=" + encodeURIComponent(text), "_blank");
+}
+function startPolling(){
+  stopPolling();
+  pollTimer = setInterval(refreshBuild, 20000);
+}
+function stopPolling(){
+  if(pollTimer){ try { clearInterval(pollTimer); } catch(e){} pollTimer = null; }
+}
+async function refreshBuild(){
+  var s = readSettings();
+  var box = document.getElementById("buildStatus");
+  if(!s.ghToken){ box.textContent = "Pehle Settings mein GitHub Token daalo."; return; }
+  var r = parseRepo(s.repo);
+  if(!r){ box.textContent = "Repo ka format ghalat hai — owner/repo likho."; return; }
+  try {
+    var res = await fetch(buildGhRunsUrl(r.owner, r.repo), { headers: ghHeaders(s.ghToken) });
+    if(!res.ok) throw new Error(ghErrorMessage(res.status));
+    var data = await res.json();
+    var run = (data.workflow_runs && data.workflow_runs[0]) || null;
+    currentRun = run;
+    if(!run){
+      box.textContent = "Abhi koi build nahi chali.";
+      document.getElementById("buildSteps").innerHTML = "";
+      return;
+    }
+    var line = buildRunStatus(run);
+    line += "\n" + runStatusChip(run);
+    if(run.head_commit && run.head_commit.message) line += "\nCommit: " + run.head_commit.message;
+    line += "\nWaqt lagaa: " + fmtDuration(run);
+    box.textContent = line;
+    showBuildBanner(run);
+    if(run.status === "completed"){
+      stopPolling();
+      renderSteps(run, null);
+      loadArtifactFor(run);
+    } else {
+      try {
+        var jres = await fetch(buildGhJobsUrl(r.owner, r.repo, run.id), { headers: ghHeaders(s.ghToken) });
+        if(jres.ok){
+          var jd = await jres.json();
+          renderSteps(run, (jd.jobs && jd.jobs[0]) || null);
+        }
+      } catch(e){}
+    }
+  } catch(e){
+    box.textContent = isNetworkError(e) ? "Internet nahi hai" : (e.message || "Kuch ghalat ho gaya");
+  }
+}
+function renderSteps(run, job){
+  var box = document.getElementById("buildSteps");
+  if(!job || !job.steps || !job.steps.length){ box.innerHTML = ""; return; }
+  var html = "";
+  for(var i = 0; i < job.steps.length; i++){
+    var st = job.steps[i];
+    var chip = st.status === "completed"
+      ? (st.conclusion === "success" ? '<span class="chip ok">✅</span>' : (st.conclusion === "failure" ? '<span class="chip bad">❌</span>' : '<span class="chip">' + escapeHtml(st.conclusion || "khatam") + "</span>"))
+      : (st.status === "in_progress" ? '<span class="chip run">🔄</span>' : '<span class="chip">⏳</span>');
+    html += '<div class="lrow"><span class="dot">' + chip + '</span><span>' + escapeHtml(st.name || ("Step " + st.number)) + "</span></div>";
+  }
+  box.innerHTML = html;
+}
+async function loadArtifactFor(run){
+  if(!run) return;
+  var s = readSettings();
+  var r = parseRepo(s.repo);
+  if(!r || !s.ghToken) return;
+  try {
+    var res = await fetch(buildGhArtifactsUrl(r.owner, r.repo, run.id), { headers: ghHeaders(s.ghToken) });
+    if(!res.ok) return;
+    var data = await res.json();
+    var arts = data.artifacts || [];
+    var info = document.getElementById("apkInfo");
+    if(arts.length){
+      currentArtifact = arts[0];
+      info.textContent = currentArtifact.name + " — " + formatBytes(currentArtifact.size_in_bytes) + " — " + fmtTime(currentArtifact.created_at);
+      document.getElementById("btnDownload").disabled = false;
+      document.getElementById("btnOpenRun").disabled = false;
+    } else {
+      info.textContent = "Is run ka koi artifact (APK) nahi mila.";
+      document.getElementById("btnDownload").disabled = true;
+      document.getElementById("btnOpenRun").disabled = false;
+    }
+  } catch(e){}
+}
+async function downloadArtifact(){
+  if(!currentArtifact) return;
+  var s = readSettings();
+  var r = parseRepo(s.repo);
+  if(!r) return;
+  var btn = document.getElementById("btnDownload");
+  btn.disabled = true;
+  btn.textContent = "⏳ Download ho raha hai...";
+  try {
+    var res = await fetch(buildGhArtifactZipUrl(r.owner, r.repo, currentArtifact.id), { headers: ghHeaders(s.ghToken) });
+    if(!res.ok) throw new Error(ghErrorMessage(res.status));
+    var blob = await res.blob();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = (currentArtifact.name || "Mera-App") + ".zip";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ try { URL.revokeObjectURL(url); } catch(e){} }, 5000);
+    showMsg("Download shuru ho gaya ✅ (zip file — andar APK hai). Agar na ho to 'GitHub pe kholo' se download karo.", "ok");
+  } catch(e){
+    showMsg(isNetworkError(e) ? "Internet nahi hai" : (e.message || "Download nahi ho saka — 'GitHub pe kholo' se try karo"), "err");
+  }
+  btn.disabled = false;
+  btn.textContent = "⬇️ APK download karo";
+}
+async function downloadRunArtifact(runId){
+  var s = readSettings();
+  var r = parseRepo(s.repo);
+  if(!r || !s.ghToken){ showMsg("Pehle Settings mein GitHub Token daalo.", "err"); return; }
+  showMsg("Artifact dhoond raha hoon...", "");
+  try {
+    var res = await fetch(buildGhArtifactsUrl(r.owner, r.repo, runId), { headers: ghHeaders(s.ghToken) });
+    if(!res.ok) throw new Error(ghErrorMessage(res.status));
+    var data = await res.json();
+    var arts = data.artifacts || [];
+    if(!arts.length){ showMsg("Is run ka koi APK nahi mila.", "err"); return; }
+    currentArtifact = arts[0];
+    currentRun = { id: runId };
+    await downloadArtifact();
+  } catch(e){
+    showMsg(isNetworkError(e) ? "Internet nahi hai" : (e.message || "Kuch ghalat ho gaya"), "err");
+  }
+}
+async function refreshHistory(){
+  var s = readSettings();
+  var list = document.getElementById("historyList");
+  if(!s.ghToken){ list.innerHTML = '<p class="hint">Pehle Settings mein GitHub Token daalo.</p>'; return; }
+  var r = parseRepo(s.repo);
+  if(!r){ list.innerHTML = '<p class="hint">Repo ka format ghalat hai.</p>'; return; }
+  list.innerHTML = '<p class="hint">History la raha hoon...</p>';
+  try {
+    var res = await fetch(buildGhRunsListUrl(r.owner, r.repo, 10), { headers: ghHeaders(s.ghToken) });
+    if(!res.ok) throw new Error(ghErrorMessage(res.status));
+    var data = await res.json();
+    var runs = data.workflow_runs || [];
+    if(!runs.length){ list.innerHTML = '<p class="hint">Abhi koi build nahi chali.</p>'; return; }
+    var html = "";
+    for(var i = 0; i < runs.length; i++){
+      var run = runs[i];
+      var ok = run.status === "completed" && run.conclusion === "success";
+      var title = (run.head_commit && run.head_commit.message) ? run.head_commit.message : (run.name || "Build APK");
+      html += '<div class="lrow"><span class="dot">' + runStatusChip(run) + '</span><div style="flex:1"><b>#' + run.run_number + '</b> — ' + escapeHtml(title) + '<br><span class="hint">' + fmtTime(run.created_at) + " • " + fmtDuration(run) + "</span></div>" + (ok ? '<button class="btn small" onclick="__dlRun(' + run.id + ')">⬇️ APK</button>' : "") + '<button class="btn small" onclick="__openRun(' + run.id + ')">🌐</button></div>';
+    }
+    list.innerHTML = html;
+  } catch(e){
+    list.innerHTML = '<p class="hint">' + escapeHtml(isNetworkError(e) ? "Internet nahi hai" : (e.message || "Kuch ghalat ho gaya")) + "</p>";
+  }
+}
+function openActions(){
+  var s = readSettings();
+  var r = parseRepo(s.repo);
+  if(!r){ showMsg("Repo ka format ghalat hai — owner/repo likho.", "err"); return; }
+  window.open(buildGhActionsUrl(r.owner, r.repo), "_blank");
+}
+
+/* ---------- projects / theme / font ---------- */
+function switchProject(id){
+  var s = getStore();
+  persistCode();
+  s.currentProjectId = id;
+  saveStore(s);
+  undoStack.length = 0;
+  redoStack.length = 0;
+  fillSettings();
+  lastEditorValue = document.getElementById("editor").value;
+  showMsg("Project badal gaya.", "ok");
+}
+function addProject(){
+  var name = document.getElementById("newProjName").value.trim();
+  var repo = document.getElementById("newProjRepo").value.trim();
+  if(!name){ showMsg("Project ka naam likho.", "err"); return; }
+  if(!parseRepo(repo)){ showMsg("Repo ka format ghalat hai — owner/repo likho.", "err"); return; }
+  var s = getStore();
+  persistCode();
+  var p = newProject(name, repo);
+  s.projects.push(p);
+  s.currentProjectId = p.id;
+  saveStore(s);
+  document.getElementById("newProjName").value = "";
+  document.getElementById("newProjRepo").value = "";
+  undoStack.length = 0;
+  redoStack.length = 0;
+  fillSettings();
+  lastEditorValue = "";
+  showMsg("Project '" + name + "' add ho gaya.", "ok");
+}
+function delProject(){
+  var s = getStore();
+  if(s.projects.length <= 1){ showMsg("Akela project hata nahi sakte.", "err"); return; }
+  var p = getProject(s);
+  var name = p ? p.name : "";
+  s.projects = s.projects.filter(function(x){ return x.id !== s.currentProjectId; });
+  s.currentProjectId = s.projects[0].id;
+  saveStore(s);
+  undoStack.length = 0;
+  redoStack.length = 0;
+  fillSettings();
+  lastEditorValue = document.getElementById("editor").value;
+  showMsg("Project '" + name + "' hata diya.", "ok");
+}
+function toggleDark(){
+  var s = getStore();
+  s.darkMode = !s.darkMode;
+  saveStore(s);
+  applyTheme(s);
+}
+function changeFont(delta){
+  var s = readSettings();
+  var size = s.fontSize + delta;
+  if(size < 11) size = 11;
+  if(size > 22) size = 22;
+  var st = getStore();
+  st.fontSize = size;
+  saveStore(st);
+  applyFontSize(size);
+  updateGutter();
+}
+
+/* ---------- boot ---------- */
+fillSettings();
+renderTemplates();
+lastEditorValue = document.getElementById("editor").value;
+var _st0 = getStore();
+if(!_st0.geminiKey || !_st0.ghToken){ openDrawer(); }
+var _lastUp = (function(){ var pp = getProject(getStore()); return pp && pp.lastUpload; })();
+if(_lastUp){
+  setUploadStatus((_lastUp.ok ? "✅ Upload ho gaya — " : "❌ Upload fail — ") + (_lastUp.path || ""), _lastUp.ok);
+}
+document.getElementById("btnMenu").addEventListener("click", openDrawer);
+document.getElementById("btnDrawerX").addEventListener("click", closeDrawer);
+document.getElementById("scrim").addEventListener("click", closeDrawer);
+document.getElementById("btnDarkTop").addEventListener("click", toggleDark);
+document.getElementById("btnDarkMode").addEventListener("click", toggleDark);
+document.getElementById("btnFontMinus").addEventListener("click", function(){ changeFont(-1); });
+document.getElementById("btnFontPlus").addEventListener("click", function(){ changeFont(1); });
+document.getElementById("projectSelect").addEventListener("change", function(){
+  switchProject(document.getElementById("projectSelect").value);
+});
+document.querySelectorAll(".tab").forEach(function(b){
+  b.addEventListener("click", function(){
+    switchTab(b.getAttribute("data-tab"));
+  });
+});
+document.querySelectorAll("[data-goto]").forEach(function(b){
+  b.addEventListener("click", function(){
+    switchTab(b.getAttribute("data-goto"));
+  });
+});
+document.getElementById("btnGen").addEventListener("click", genCode);
+document.getElementById("btnCmd").addEventListener("click", runCommand);
+document.getElementById("btnRevert").addEventListener("click", function(){
+  var s = getStore();
+  var p = getProject(s);
+  if(!p || !p.backup){ showMsg("Wapas lene ke liye koi backup nahi.", "err"); return; }
+  var oldCode = document.getElementById("editor").value;
+  document.getElementById("editor").value = p.backup;
+  lastEditorValue = p.backup;
+  persistCode();
+  updateGutter();
+  showCompare(oldCode, p.backup);
+  document.getElementById("btnRevert").style.display = "none";
+  showMsg("Pehla wala code wapas aa gaya.", "ok");
+});
+document.getElementById("btnUndo").addEventListener("click", undoEdit);
+document.getElementById("btnRedo").addEventListener("click", redoEdit);
+document.getElementById("btnCopy").addEventListener("click", copyCode);
+document.getElementById("btnSearch").addEventListener("click", searchCode);
+document.getElementById("btnSyntax").addEventListener("click", syntaxCheckUI);
+document.getElementById("btnReview").addEventListener("click", reviewCode);
+document.getElementById("btnFix").addEventListener("click", fixCode);
+document.getElementById("btnExplain").addEventListener("click", explainLine);
+document.getElementById("btnClear").addEventListener("click", function(){
+  backupCurrentCode();
+  document.getElementById("editor").value = "";
+  document.getElementById("preview").srcdoc = "";
+  persistCode();
+  updateGutter();
+});
+document.getElementById("btnPreview").addEventListener("click", doPreview);
+document.getElementById("editor").addEventListener("input", onEditorInput);
+document.getElementById("editor").addEventListener("scroll", function(){
+  document.getElementById("gutter").scrollTop = document.getElementById("editor").scrollTop;
+});
+document.getElementById("prompt").addEventListener("input", persistCode);
+document.getElementById("btnUpload").addEventListener("click", upload);
+document.getElementById("btnFetchGh").addEventListener("click", fetchFromGitHub);
+document.getElementById("btnBuildGo").addEventListener("click", function(){ switchTab("build"); });
+document.getElementById("btnShare").addEventListener("click", shareWhatsApp);
+document.getElementById("btnRefreshBuild").addEventListener("click", refreshBuild);
+document.getElementById("btnDownload").addEventListener("click", downloadArtifact);
+document.getElementById("btnOpenRun").addEventListener("click", function(){
+  if(currentRun) window.open(buildGhRunUrl(readSettings().repo.split("/")[0], readSettings().repo.split("/")[1], currentRun.id), "_blank");
+});
+document.getElementById("btnActions").addEventListener("click", openActions);
+document.getElementById("btnRefreshHist").addEventListener("click", refreshHistory);
+document.getElementById("btnSave").addEventListener("click", saveSettings);
+document.getElementById("btnAddProj").addEventListener("click", addProject);
+document.getElementById("btnDelProj").addEventListener("click", delProject);
+document.getElementById("btnUpdateCheck").addEventListener("click", function(){ checkUpdate(true); });
+["setGeminiKey","setGhToken","setModel","setRepo","setPath","setAppName","setVersion"].forEach(function(id){
+  document.getElementById(id).addEventListener("input", function(){
+    var d = getStore();
+    d.geminiKey = document.getElementById("setGeminiKey").value.trim();
+    d.ghToken = document.getElementById("setGhToken").value.trim();
+    d.model = document.getElementById("setModel").value.trim() || DEFAULTS.model;
+    var p = getProject(d);
+    if(p){
+      p.appName = document.getElementById("setAppName").value.trim() || DEFAULTS.appName;
+      p.version = document.getElementById("setVersion").value.trim() || DEFAULTS.version;
+      p.repo = document.getElementById("setRepo").value.trim() || DEFAULTS.repo;
+      p.path = document.getElementById("setPath").value.trim() || DEFAULTS.path;
+    }
+    saveStore(d);
+  });
+});
+window.addEventListener("message", function(ev){
+  if(ev && ev.data && ev.data.type === "preview-error"){
+    document.getElementById("previewErr").textContent = "⚠️ Preview error: " + ev.data.message;
+  }
+});
+/* Silent update check on launch (only shows the banner when a newer version exists). */
+checkUpdate(false);
+</script>
+</body>
+</html>
